@@ -67,6 +67,26 @@
       <div id="flow-body"></div>
     </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/gh/perfectfinmart/pf-recovery-live@7635a145dcc47f5667642e00056f0e6c1057012f/desk.js"></script>
+  <script>
+  (function(){
+    var URLS = [
+      "https://cdn.jsdelivr.net/gh/perfectfinmart/pf-recovery-live@7635a145dcc47f5667642e00056f0e6c1057012f/desk.js",
+      "https://raw.githubusercontent.com/perfectfinmart/pf-recovery-live/7635a145dcc47f5667642e00056f0e6c1057012f/desk.js"
+    ];
+    function run(code){ (0,eval)(code); }
+    function fail(){
+      var el = document.getElementById("sub");
+      if (el) el.textContent = "Could not start the desk. Refresh once.";
+    }
+    function tryUrl(i){
+      if (i >= URLS.length) return fail();
+      fetch(URLS[i], {cache:"no-store"})
+        .then(function(r){ if(!r.ok) throw new Error("bad"); return r.text(); })
+        .then(run)
+        .catch(function(){ tryUrl(i+1); });
+    }
+    tryUrl(0);
+  })();
+  </script>
 </body>
 </html>
