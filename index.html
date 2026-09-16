@@ -21,15 +21,15 @@
     .banner { margin:1rem 0 0; padding:1rem; border-radius:.75rem; background:var(--paper); }
     .banner.ok { border:1px solid #cfe6d7; background:#e7f4ec; }
     .banner.bad { border:1px solid #edd0d0; background:#f8e8e8; }
-    .banner .title { font-family:Fraunces,Georgia,serif; font-size:1.2rem; font-weight:500; margin:.25rem 0 0; }
+    .title { font-family:Fraunces,Georgia,serif; font-size:1.2rem; font-weight:500; margin:.25rem 0 0; }
     .kicker2 { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--subtle); font-weight:500; }
     .compare { width:100%; border-collapse:collapse; margin-top:.8rem; font-size:14px; }
     .compare th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--subtle); font-weight:500; text-align:left; padding:0 .4rem .4rem 0; }
     .compare td { padding:.5rem .4rem .5rem 0; border-top:1px solid var(--line); }
-    .legend { font-size:13px; color:var(--muted); margin-top:.7rem; font-weight:400; }
+    .legend { font-size:13px; color:var(--muted); margin-top:.7rem; }
     .kpis, .bands { display:grid; gap:.75rem; margin-top:1rem; }
     @media (min-width:900px){ .kpis{grid-template-columns:repeat(4,1fr);} .bands{grid-template-columns:repeat(5,1fr);} }
-    .card { background:var(--paper); border-radius:.9rem; padding:1rem; box-shadow:0 8px 24px rgba(27,58,75,.05); text-align:left; border:0; width:100%; color:inherit; }
+    .card { background:var(--paper); border-radius:.9rem; padding:1rem; text-align:left; border:0; width:100%; color:inherit; }
     .label { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
     .num { font-family:Fraunces,Georgia,serif; font-size:1.85rem; font-weight:500; margin:.35rem 0 0; }
     .hint { font-size:13px; color:var(--muted); margin-top:.25rem; line-height:1.45; }
@@ -38,7 +38,7 @@
     .chip.ok { background:var(--ok-bg); color:var(--ok); } .chip.bad { background:var(--danger-bg); color:var(--danger); }
     .modal { position:fixed; inset:0; background:rgba(27,58,75,.45); z-index:50; display:flex; align-items:flex-start; justify-content:center; padding:4rem 1rem 1rem; }
     .modal[hidden] { display:none; }
-    .panel { background:var(--paper); color:var(--ink); max-width:42rem; width:100%; max-height:80vh; overflow:auto; border-radius:.9rem; box-shadow:0 16px 40px rgba(27,58,75,.18); }
+    .panel { background:var(--paper); color:var(--ink); max-width:42rem; width:100%; max-height:80vh; overflow:auto; border-radius:.9rem; }
     .panel-h { display:flex; justify-content:space-between; gap:1rem; padding:1rem 1rem .6rem; border-bottom:1px solid var(--line); }
     .close { min-height:44px; padding:0 1rem; border:1px solid var(--line); background:var(--paper); border-radius:.45rem; }
     .nav { display:flex; gap:.35rem; margin-top:1rem; background:var(--paper); padding:.25rem; border-radius:.7rem; flex-wrap:wrap; }
@@ -46,7 +46,7 @@
     .nav button.on { background:var(--ink); color:var(--paper); }
     table { width:100%; border-collapse:collapse; font-size:14px; }
     th, td { text-align:left; padding:.55rem .4rem; border-bottom:1px solid var(--line); }
-    th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink); }
+    th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
     td.r, th.r { text-align:right; font-variant-numeric:tabular-nums; }
     .mono { font-family:"IBM Plex Mono",monospace; }
     .scroll { overflow-x:auto; margin-top:1rem; background:var(--paper); border-radius:.9rem; }
@@ -62,16 +62,11 @@
   <main class="wrap"><div id="app"></div></main>
   <div id="flow-modal" class="modal" hidden onclick="if(event.target===this)closeFlow()">
     <div class="panel" role="dialog" aria-modal="true">
-      <div class="panel-h">
-        <div>
-          <p class="kicker2" id="flow-sub"></p>
-          <p class="title" id="flow-title"></p>
-        </div>
-        <button type="button" class="close" onclick="closeFlow()">Close</button>
-      </div>
+      <div class="panel-h"><div><p class="kicker2" id="flow-sub"></p><p class="title" id="flow-title"></p></div>
+        <button type="button" class="close" onclick="closeFlow()">Close</button></div>
       <div id="flow-body"></div>
     </div>
   </div>
-<script src="./desk.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/perfectfinmart/pf-recovery-live@7635a145dcc47f5667642e00056f0e6c1057012f/desk.js"></script>
 </body>
 </html>
