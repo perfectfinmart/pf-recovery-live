@@ -18,14 +18,21 @@
     .kicker { font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--teal); font-weight:500; }
     h1 { font-family:Fraunces,Georgia,serif; font-weight:500; font-size:2rem; margin:.25rem 0 0; }
     .sub { font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--subtle); margin:.35rem 0 0; }
-    .banner { margin:1rem 0 0; padding:.85rem 1rem; border-radius:.75rem; background:var(--paper); }
-    .banner.ok { border:1px solid #cfe6d7; } .banner.bad { border:1px solid #edd0d0; }
+    .banner { margin:1rem 0 0; padding:1rem; border-radius:.75rem; background:var(--paper); }
+    .banner.ok { border:1px solid #cfe6d7; background:#e7f4ec; }
+    .banner.bad { border:1px solid #edd0d0; background:#f8e8e8; }
+    .banner .title { font-family:Fraunces,Georgia,serif; font-size:1.2rem; font-weight:500; margin:.25rem 0 0; }
+    .kicker2 { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--subtle); font-weight:500; }
+    .compare { width:100%; border-collapse:collapse; margin-top:.8rem; font-size:14px; }
+    .compare th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--subtle); font-weight:500; text-align:left; padding:0 .4rem .4rem 0; }
+    .compare td { padding:.5rem .4rem .5rem 0; border-top:1px solid var(--line); }
+    .legend { font-size:13px; color:var(--muted); margin-top:.7rem; font-weight:400; }
     .kpis, .bands { display:grid; gap:.75rem; margin-top:1rem; }
     @media (min-width:900px){ .kpis{grid-template-columns:repeat(4,1fr);} .bands{grid-template-columns:repeat(5,1fr);} }
     .card { background:var(--paper); border-radius:.9rem; padding:1rem; box-shadow:0 8px 24px rgba(27,58,75,.05); text-align:left; border:0; width:100%; color:inherit; }
     .label { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
     .num { font-family:Fraunces,Georgia,serif; font-size:1.85rem; font-weight:500; margin:.35rem 0 0; }
-    .hint { font-size:12px; color:var(--subtle); margin-top:.15rem; }
+    .hint { font-size:13px; color:var(--muted); margin-top:.25rem; line-height:1.45; }
     .ok { color:var(--ok); } .bad { color:var(--danger); }
     .chip { font-size:11px; font-weight:600; padding:.15rem .45rem; border-radius:999px; display:inline-block; margin:0 .25rem .25rem 0; }
     .chip.ok { background:var(--ok-bg); color:var(--ok); } .chip.bad { background:var(--danger-bg); color:var(--danger); }
@@ -45,7 +52,7 @@
   <header><div class="wrap">
     <p class="kicker">Perfect Finmart · F-series</p>
     <h1>Daily monitor</h1>
-    <p class="sub" id="sub">Loading live book…</p>
+    <p class="sub" id="sub">Loading…</p>
   </div></header>
   <main class="wrap"><div id="app"></div></main>
 <script>
@@ -58,8 +65,49 @@ const int = new Intl.NumberFormat("en-IN");
 const inr = new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0});
 function cr(n){ const a=Math.abs(n); if(a>=1e7) return (n<0?"\u2212":"")+"\u20b9"+(a/1e7).toFixed(2)+" Cr"; if(a>=1e5) return (n<0?"\u2212":"")+"\u20b9"+(a/1e5).toFixed(2)+" L"; return inr.format(Math.round(n)); }
 function fd(v){ if(!v) return "\u2014"; const [y,m,d]=v.split("-"); return d+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(m)-1]+" "+y; }
-function signed(n, money){ return (n>0.5?"+":"")+(money?cr(n):int.format(n)); }
 function cls(n){ return n<-0.5?"ok":n>0.5?"bad":""; }
+function result(n, money){
+  if(Math.abs(n)<0.5) return "Same as 16 Sep";
+  const body = money ? cr(Math.abs(n)) : int.format(Math.abs(n));
+  if(n<0) return body + " less. Good.";
+  return body + " more. Bad.";
+}
+function boardBanner(lap, vs){
+  const dump = fd(META.asOf);
+  const before = META.asOf < "2026-09-16";
+  const same = META.asOf === "2026-09-16";
+  const odDelta = lap.overdue - vs.overdue;
+  const caseDelta = lap.odCases - vs.odCases;
+  const npaDelta = lap.npa91 - vs.npa91;
+  let title, why, tone;
+  if(same){
+    title = "This is 16 September. This is our start day.";
+    why = "From the next mail, we will see if pending EMI went down or up against this day.";
+    tone = "";
+  } else if(before){
+    title = "This mail is " + dump + ". We are matching it with 16 September.";
+    why = "On " + dump + ", pending EMI was less than on 16 Sep. That means from " + dump + " to 16 Sep, more money became pending.";
+    tone = (odDelta < -0.5 || caseDelta < 0) ? "ok" : "bad";
+  } else if(odDelta < -0.5 && caseDelta <= 0){
+    title = "Pending EMI is less than 16 September. This is good.";
+    why = "16 September is our start. We do not compare with yesterday. Green = pending less (good). Red = pending more (bad).";
+    tone = "ok";
+  } else if(odDelta > 0.5 && caseDelta >= 0){
+    title = "Pending EMI is more than 16 September. This is bad.";
+    why = "16 September is our start. We do not compare with yesterday. Green = pending less (good). Red = pending more (bad).";
+    tone = "bad";
+  } else {
+    title = "Some numbers are better than 16 Sep. Some are worse.";
+    why = "16 September is our start. We do not compare with yesterday.";
+    tone = "";
+  }
+  return '<div class="banner '+tone+'"><p class="kicker2">Simple meaning</p><p class="title">'+title+'</p><p class="hint">'+why+'</p>'
+    +'<table class="compare"><thead><tr><th>What</th><th>This mail \u00b7 '+dump+'</th><th>16 Sep start</th><th>Result</th></tr></thead><tbody>'
+    +'<tr><td>Cases not paid</td><td class="mono">'+int.format(lap.odCases)+'</td><td class="mono">'+int.format(vs.odCases)+'</td><td class="'+cls(caseDelta)+'">'+result(caseDelta,false)+'</td></tr>'
+    +'<tr><td>Money not paid</td><td class="mono">'+cr(lap.overdue)+'</td><td class="mono">'+cr(vs.overdue)+'</td><td class="'+cls(odDelta)+'">'+result(odDelta,true)+'</td></tr>'
+    +'<tr><td>Cases late 91 days+</td><td class="mono">'+int.format(lap.npa91)+'</td><td class="mono">'+int.format(vs.npa91)+'</td><td class="'+cls(npaDelta)+'">'+result(npaDelta,false)+'</td></tr>'
+    +'</tbody></table><p class="legend">Green = pending is less than 16 Sep. Good. Red = pending is more than 16 Sep. Bad.</p></div>';
+}
 let META=null, ROWS=[];
 function band(){ const h=(location.hash||"").replace(/^#\/?/,""); const m=h.match(/^sheet\/(m0_1|m1_2|m2_3|m3_6|m6p)$/); return m?m[1]:""; }
 function go(id){ history.replaceState(null,"", id ? "#/sheet/"+id : "#"); render(); }
@@ -68,11 +116,11 @@ function kpi(label,value,hint,delta){
 }
 function chips(dc,da){
   const out=[];
-  if(dc<0) out.push('<span class="chip ok">'+int.format(Math.abs(dc))+' cases reduced</span>');
-  if(da<-0.5) out.push('<span class="chip ok">'+cr(Math.abs(da))+' reduced</span>');
-  if(dc>0) out.push('<span class="chip bad">'+int.format(dc)+' cases added</span>');
-  if(da>0.5) out.push('<span class="chip bad">'+cr(da)+' added</span>');
-  if(!out.length) out.push('<span class="chip" style="color:var(--subtle)">flat vs 16 Sep</span>');
+  if(dc<0) out.push('<span class="chip ok">'+int.format(Math.abs(dc))+' cases less. Good.</span>');
+  if(da<-0.5) out.push('<span class="chip ok">'+cr(Math.abs(da))+' less. Good.</span>');
+  if(dc>0) out.push('<span class="chip bad">'+int.format(dc)+' cases more. Bad.</span>');
+  if(da>0.5) out.push('<span class="chip bad">'+cr(da)+' more. Bad.</span>');
+  if(!out.length) out.push('<span class="chip" style="color:var(--subtle)">Same as 16 Sep</span>');
   return out.join('');
 }
 function nav(cur){
@@ -81,39 +129,37 @@ function nav(cur){
 function render(){
   if(!META) return;
   const lap=META.lap, vs=META.vs16Sep, cur=band();
-  document.getElementById('sub').textContent = 'Actual '+fd(META.asOf)+' \u00b7 compared with 16 Sep 2026 \u00b7 live';
+  document.getElementById('sub').textContent = 'This mail '+fd(META.asOf)+' \u00b7 we only compare with 16 Sep start';
   const odDelta=lap.overdue-vs.overdue, caseDelta=lap.odCases-vs.odCases;
-  const better=odDelta<-0.5||caseDelta<0;
   if(!cur){
-    const total=lap.overdue||1;
     document.getElementById('app').innerHTML =
-      '<div class="banner '+(better?'ok':'bad')+'"><strong>'+(better?'Improving vs 16 Sep \u2014 overdue / 91+ have come down.':'Degrading vs 16 Sep \u2014 overdue stock has risen.')+'</strong><div class="hint">Today '+int.format(lap.odCases)+' overdue \u00b7 16 Sep '+int.format(vs.odCases)+' \u00b7 \u0394 '+signed(caseDelta,false)+' cases \u00b7 '+signed(odDelta,true)+'</div></div>'
+      boardBanner(lap, vs)
       +nav('')+
       '<div class="kpis">'
-        +kpi('LAP book', int.format(lap.cases), int.format(lap.current)+' current', {n:lap.cases-vs.cases,t:signed(lap.cases-vs.cases,false)+' vs 16 Sep'})
-        +kpi('LAP overdue', cr(lap.overdue), int.format(lap.odCases)+' cases', {n:odDelta,t:signed(odDelta,true)+' vs 16 Sep'})
-        +kpi('91+ DPD', cr(lap.npa91Overdue), int.format(lap.npa91)+' cases', {n:lap.npa91Overdue-vs.npa91Overdue,t:signed(lap.npa91Overdue-vs.npa91Overdue,true)+' vs 16 Sep'})
-        +kpi('Current', int.format(lap.current), 'paying on time', {n:lap.current-vs.current,t:signed(lap.current-vs.current,false)+' vs 16 Sep'})
+        +kpi('LAP files', int.format(lap.cases), int.format(lap.current)+' paying on time', {n:lap.cases-vs.cases,t:result(lap.cases-vs.cases,false)})
+        +kpi('Pending EMI', cr(lap.overdue), int.format(lap.odCases)+' cases not paid', {n:odDelta,t:result(odDelta,true)})
+        +kpi('Late 91 days+', cr(lap.npa91Overdue), int.format(lap.npa91)+' cases', {n:lap.npa91Overdue-vs.npa91Overdue,t:result(lap.npa91Overdue-vs.npa91Overdue,true)})
+        +kpi('Paying on time', int.format(lap.current), 'current accounts', {n:-(lap.current-vs.current),t:(lap.current-vs.current)>0.5 ? int.format(lap.current-vs.current)+' more. Good.' : (lap.current-vs.current)<-0.5 ? int.format(Math.abs(lap.current-vs.current))+' less. Bad.' : 'Same as 16 Sep'})
       +'</div><div class="bands">'+ORDER.map(id=>{
         const b=lap.buckets.find(x=>x.id===id); const a=vs.buckets.find(x=>x.id===id)||{cases:0,overdue:0};
         const dc=b.cases-a.cases, da=b.overdue-a.overdue;
         return '<button type="button" class="card" onclick="go(\''+id+'\')">'+chips(dc,da)+
           '<p style="font-family:Fraunces,Georgia,serif;font-size:1.05rem;margin:.35rem 0 0">'+LABELS[id]+'</p><p class="hint">'+HINTS[id]+'</p>'
-          +'<p class="num">'+int.format(b.cases)+'</p><p class="hint">cases today</p>'
+          +'<p class="num">'+int.format(b.cases)+'</p><p class="hint">cases in this mail</p>'
           +'<p class="mono" style="margin-top:.5rem">'+cr(b.overdue)+'</p>'
-          +'<p class="hint">16 Sep '+int.format(a.cases)+' \u00b7 '+cr(a.overdue)+'</p>'
-          +'<p class="hint '+ (cls(da)||cls(dc)) +'">'+signed(dc,false)+' cases \u00b7 '+signed(da,true)+'</p></button>';
-      }).join('')+'</div><footer>Click a bucket to open that person\u2019s sheet.</footer>';
+          +'<p class="hint">16 Sep start '+int.format(a.cases)+' \u00b7 '+cr(a.overdue)+'</p>'
+          +'<p class="hint '+ (cls(da)||cls(dc)) +'">'+result(dc,false)+' '+result(da,true)+'</p></button>';
+      }).join('')+'</div><footer>Click a bucket to open that person\u2019s list.</footer>';
     return;
   }
   const b=lap.buckets.find(x=>x.id===cur); const a=vs.buckets.find(x=>x.id===cur)||{cases:0,overdue:0};
   const dc=b.cases-a.cases, da=b.overdue-a.overdue;
   const list=ROWS.filter(r=>r[7]===cur).sort((x,y)=>y[3]-x[3]);
-  const body = list.length ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'\u2014')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td class="mono">'+(r[5]||'\u2014')+'</td><td class="mono">'+(r[8]||'\u2014')+'</td></tr>').join('') : '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted)">No files in this bucket on the live dump.</td></tr>';
+  const body = list.length ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'\u2014')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td class="mono">'+(r[5]||'\u2014')+'</td><td class="mono">'+(r[8]||'\u2014')+'</td></tr>').join('') : '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted)">No files in this bucket on this mail.</td></tr>';
   document.getElementById('app').innerHTML = nav(cur)+
-    '<div class="banner '+(dc<0||da<0?'ok':'bad')+'" style="margin-top:1rem"><strong>'+LABELS[cur]+' \u00b7 '+HINTS[cur]+'</strong><div class="hint">Today '+int.format(b.cases)+' / '+cr(b.overdue)+' \u00b7 16 Sep '+int.format(a.cases)+' / '+cr(a.overdue)+' \u00b7 \u0394 '+signed(dc,false)+' cases \u00b7 '+signed(da,true)+'</div><div style="margin-top:.4rem">'+chips(dc,da)+'</div></div>'
-    +'<div class="kpis">'+kpi('Cases today', int.format(b.cases), 'this band', {n:dc,t:signed(dc,false)+' vs 16 Sep'})+kpi('Overdue today', cr(b.overdue), LABELS[cur], {n:da,t:signed(da,true)+' vs 16 Sep'})+kpi('Files listed', int.format(list.length), 'worklist')+'</div>'
-    +'<div class="scroll"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Overdue</th><th>Last paid</th><th>Mobile</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+    '<div class="banner '+(dc<0||da<0?'ok':'bad')+'" style="margin-top:1rem"><strong>'+LABELS[cur]+'</strong><div class="hint">This mail '+int.format(b.cases)+' cases / '+cr(b.overdue)+'. 16 Sep start '+int.format(a.cases)+' cases / '+cr(a.overdue)+'.</div><div style="margin-top:.4rem">'+chips(dc,da)+'</div></div>'
+    +'<div class="kpis">'+kpi('Cases this mail', int.format(b.cases), 'this bucket', {n:dc,t:result(dc,false)})+kpi('Pending this mail', cr(b.overdue), LABELS[cur], {n:da,t:result(da,true)})+kpi('Files listed', int.format(list.length), 'worklist')+'</div>'
+    +'<div class="scroll"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Last paid</th><th>Mobile</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 async function j(path){
   try { const r=await fetch(BASE+'/'+path+'?t='+Date.now(),{cache:'no-store'}); if(r.ok) return r.json(); } catch(e){}
@@ -121,12 +167,9 @@ async function j(path){
 }
 async function load(){
   META = await j('live-meta.json');
-  const a = await j('live-od-1.json');
-  const b = await j('live-od-2.json');
-  const c = await j('live-m1_2.json');
-  if (a && a.length && b && b.length) ROWS = a.concat(b);
-  else if (c && c.length) ROWS = c;
-  else if (a && a.length) ROWS = a;
+  const packs = await Promise.all(['live-m1_2.json','live-m2_3.json','live-m3_6.json','live-m6p.json'].map(j));
+  const merged = packs.flatMap(x => Array.isArray(x) ? x : []);
+  if (merged.length) ROWS = merged;
   if(META) render(); else document.getElementById('sub').textContent='Live feed not reached';
 }
 window.go=go;
