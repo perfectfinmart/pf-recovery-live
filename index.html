@@ -123,7 +123,10 @@ async function load(){
   META = await j('live-meta.json');
   const a = await j('live-od-1.json');
   const b = await j('live-od-2.json');
-  if (a && b) ROWS = a.concat(b); else if (a) ROWS = a;
+  const c = await j('live-m1_2.json');
+  if (a && a.length && b && b.length) ROWS = a.concat(b);
+  else if (c && c.length) ROWS = c;
+  else if (a && a.length) ROWS = a;
   if(META) render(); else document.getElementById('sub').textContent='Live feed not reached';
 }
 window.go=go;
