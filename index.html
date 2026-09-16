@@ -69,9 +69,10 @@
   </div>
   <script>
   (function(){
+    var t = Date.now();
     var URLS = [
-      "https://cdn.jsdelivr.net/gh/perfectfinmart/pf-recovery-live@7635a145dcc47f5667642e00056f0e6c1057012f/desk.js",
-      "https://raw.githubusercontent.com/perfectfinmart/pf-recovery-live/7635a145dcc47f5667642e00056f0e6c1057012f/desk.js"
+      "https://raw.githubusercontent.com/perfectfinmart/pf-recovery-live/main/desk.js?t="+t,
+      "https://cdn.jsdelivr.net/gh/perfectfinmart/pf-recovery-live@main/desk.js?t="+t
     ];
     function run(code){ (0,eval)(code); }
     function fail(){
