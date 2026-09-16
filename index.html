@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recovery Desk — Perfect Finmart</title>
+  <meta name="theme-color" content="#1B3A4B" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #eef2ef; --paper: #f7f6f2; --ink: #1b3a4b; --muted: #5b6b73;
+      --subtle: #8a969c; --line: #d5ddd8; --teal: #1f6f78; --ok: #1f7a4d;
+      --warn: #b45309; --danger: #9b2c2c; --ok-bg: #e7f4ec; --danger-bg: #f8e8e8;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--ink);
+      font-family: "Source Sans 3", system-ui, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    header { background: var(--paper); border-bottom: 1px solid var(--line); }
+    .wrap { max-width: 72rem; margin: 0 auto; padding: 1.25rem 1rem; }
+    .kicker { font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--teal); font-weight: 500; }
+    h1 { font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 2rem;
+      margin: .25rem 0 0; letter-spacing: -.02em; }
+    .sub { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--subtle); margin: .35rem 0 0; }
+    .banner { margin: 1rem 0 0; padding: .85rem 1rem; border-radius: .75rem;
+      background: var(--paper); box-shadow: 0 1px 0 rgba(27,58,75,.04); }
+    .banner.ok { border: 1px solid #cfe6d7; }
+    .banner.bad { border: 1px solid #edd0d0; }
+    .banner strong { font-family: Fraunces, Georgia, serif; font-size: 1.05rem; }
+    .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; margin-top: 1rem; }
+    @media (min-width: 900px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
+    .card { background: var(--paper); border-radius: .9rem; padding: 1rem;
+      box-shadow: 0 8px 24px rgba(27,58,75,.05); }
+    .label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .num { font-family: Fraunces, Georgia, serif; font-size: 1.85rem; font-weight: 500;
+      margin: .35rem 0 0; letter-spacing: -.03em; }
+    .hint { font-size: 12px; color: var(--subtle); margin-top: .15rem; }
+    .delta.ok { color: var(--ok); } .delta.bad { color: var(--danger); }
+    .bands { display: grid; gap: .75rem; margin-top: 1rem; }
+    @media (min-width: 700px) { .bands { grid-template-columns: repeat(5, 1fr); } }
+    .band { display: block; }
+    .band:hover { transform: translateY(-2px); transition: transform .15s; }
+    .flow { display: flex; gap: .35rem; flex-wrap: wrap; margin-bottom: .5rem; }
+    .chip { font-size: 11px; font-weight: 600; padding: .15rem .45rem; border-radius: 999px; }
+    .chip.ok { background: var(--ok-bg); color: var(--ok); }
+    .chip.bad { background: var(--danger-bg); color: var(--danger); }
+    .bar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: .75rem; }
+    .bar > i { display: block; height: 100%; border-radius: 99px; }
+    .nav { display: flex; gap: .35rem; margin-top: 1rem; background: var(--paper);
+      padding: .25rem; border-radius: .7rem; }
+    .nav a { flex: 1; text-align: center; padding: .7rem .4rem; border-radius: .5rem;
+      font-size: 14px; font-weight: 500; color: var(--muted); }
+    .nav a.on { background: var(--ink); color: var(--paper); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: .55rem .4rem; border-bottom: 1px solid var(--line); }
+    th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+    td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+    .mono { font-family: "IBM Plex Mono", monospace; }
+    footer { color: var(--subtle); font-size: 12px; margin: 1.5rem 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <p class="kicker">Perfect Finmart · F-series</p>
+      <h1>Daily monitor</h1>
+      <p class="sub" id="sub">Loading live book…</p>
+    </div>
+  </header>
+  <main class="wrap">
+    <div id="app"></div>
+  </main>
+<script>
+const LIVE = "https://raw.githubusercontent.com/perfectfinmart/pf-recovery-live/main/live-meta.json";
+const ORDER = ["m0_1","m1_2","m2_3","m3_6","m6p"];
+const LABELS = {
+  m0_1: "0–1 month",
+  m1_2: "More than 1, less than 2",
+  m2_3: "2 to less than 3",
+  m3_6: "3 to 6 months",
+  m6p: "More than 6 months",
+};
+const TONE = { m0_1:"#1f7a4d", m1_2:"#1f6f78", m2_3:"#b45309", m3_6:"#9b2c2c", m6p:"#6b1d1d" };
+const inr = new Intl.NumberFormat("en-IN", { style:"currency", currency:"INR", maximumFractionDigits: 0 });
+const int = new Intl.NumberFormat("en-IN");
+function cr(n) {
+  const abs = Math.abs(n);
+  if (abs >= 1e7) return (n < 0 ? "\u2212" : "") + "\u20b9" + (abs/1e7).toFixed(2) + " Cr";
+  if (abs >= 1e5) return (n < 0 ? "\u2212" : "") + "\u20b9" + (abs/1e5).toFixed(2) + " L";
+  return inr.format(Math.round(n));
+}
+function fd(v) {
+  if (!v) return "\u2014";
+  const [y,m,d] = v.split("-");
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return d + " " + months[Number(m)-1] + " " + y;
+}
+function dcls(n) { return n < -0.5 ? "ok" : n > 0.5 ? "bad" : ""; }
+function signed(n, money) {
+  const s = n > 0.5 ? "+" : "";
+  return s + (money ? cr(n) : int.format(n));
+}
+let META = null;
+function route() {
+  const h = location.hash.replace(/^#/, "");
+  const m = h.match(/^\/?sheet\/(m0_1|m1_2|m2_3|m3_6|m6p)$/);
+  return m ? m[1] : "";
+}
+function render() {
+  const m = META;
+  if (!m) return;
+  const lap = m.lap, vs = m.vs16Sep;
+  const band = route();
+  document.getElementById("sub").textContent = "Actual " + fd(m.asOf) + " \u00b7 compared with 16 Sep 2026 \u00b7 live";
+  const odDelta = lap.overdue - vs.overdue;
+  const caseDelta = lap.odCases - vs.odCases;
+  const better = odDelta < -0.5 || caseDelta < 0;
+  const head = better
+    ? "Improving vs 16 Sep \u2014 overdue / 91+ have come down."
+    : (odDelta > 0.5 || caseDelta > 0)
+      ? "Degrading vs 16 Sep \u2014 overdue stock has risen. Staff need focus."
+      : "Flat vs 16 Sep.";
+  const buckets = ORDER.map(id => lap.buckets.find(b => b.id === id)).filter(Boolean);
+  const totalOd = lap.overdue || 1;
+  const kpi = (label, value, hint, delta) =>
+    '<div class="card"><div class="label">'+label+'</div><div class="num">'+value+'</div><div class="hint">'+hint+'</div>' +
+    (delta ? '<div class="hint delta '+dcls(delta.n)+'">'+delta.t+'</div>' : '') + '</div>';
+  const bandCard = (b) => {
+    const a = vs.buckets.find(x => x.id === b.id) || { cases:0, overdue:0 };
+    const dc = b.cases - a.cases, da = b.overdue - a.overdue;
+    const share = (b.overdue / totalOd) * 100;
+    const chips = [];
+    if (dc < 0) chips.push('<span class="chip ok">'+int.format(Math.abs(dc))+' cases reduced</span>');
+    if (da < -0.5) chips.push('<span class="chip ok">'+cr(Math.abs(da))+' reduced</span>');
+    if (dc > 0) chips.push('<span class="chip bad">'+int.format(dc)+' cases added</span>');
+    if (da > 0.5) chips.push('<span class="chip bad">'+cr(da)+' added</span>');
+    if (!chips.length) chips.push('<span class="chip" style="color:var(--subtle)">flat vs 16 Sep</span>');
+    return '<a class="card band" href="#/sheet/'+b.id+'"><div class="flow">'+chips.join('')+'</div>' +
+      '<p style="font-family:Fraunces,Georgia,serif;font-size:1.05rem;margin:0">'+LABELS[b.id]+'</p>' +
+      '<p class="num">'+int.format(b.cases)+'</p><p class="hint">cases today</p>' +
+      '<p class="mono" style="font-size:1.05rem;margin:.6rem 0 0">'+cr(b.overdue)+'</p>' +
+      '<p class="hint">16 Sep '+int.format(a.cases)+' \u00b7 '+cr(a.overdue)+'</p>' +
+      '<p class="hint delta '+(dcls(da)||dcls(dc))+'">'+(dc===0 && Math.abs(da)<.5 ? 'Flat vs 16 Sep' : signed(dc,false)+' cases \u00b7 '+signed(da,true))+'</p>' +
+      '<div class="bar"><i style="width:'+Math.min(100,share)+'%;background:'+TONE[b.id]+'"></i></div>' +
+      '<p class="hint">'+share.toFixed(0)+'% of overdue</p></a>';
+  };
+  const nav = '<nav class="nav"><a href="#" class="'+(!band?'on':'')+'">Summary</a>' +
+    ORDER.map(id => '<a href="#/sheet/'+id+'" class="'+(band===id?'on':'')+'">'+LABELS[id].split(' ')[0]+'</a>').join('') + '</nav>';
+  if (!band) {
+    document.getElementById("app").innerHTML =
+      '<div class="banner '+(better?'ok':'bad')+'"><strong>'+head+'</strong>' +
+      '<div class="hint" style="margin-top:.35rem">Today '+int.format(lap.odCases)+' overdue \u00b7 16 Sep '+int.format(vs.odCases)+' \u00b7 \u0394 '+signed(caseDelta,false)+' cases \u00b7 '+signed(odDelta,true)+'</div></div>' +
+      nav +
+      '<div class="kpis">' +
+        kpi("LAP book", int.format(lap.cases), int.format(lap.current)+" current", {n: lap.cases-vs.cases, t: signed(lap.cases-vs.cases,false)+" vs 16 Sep"}) +
+        kpi("LAP overdue", cr(lap.overdue), int.format(lap.odCases)+" cases", {n: odDelta, t: signed(odDelta,true)+" vs 16 Sep"}) +
+        kpi("91+ DPD", cr(lap.npa91Overdue), int.format(lap.npa91)+" cases", {n: lap.npa91Overdue-vs.npa91Overdue, t: signed(lap.npa91Overdue-vs.npa91Overdue,true)+" vs 16 Sep"}) +
+        kpi("Current", int.format(lap.current), "paying on time", {n: lap.current-vs.current, t: signed(lap.current-vs.current,false)+" vs 16 Sep"}) +
+      '</div><div class="bands">'+buckets.map(bandCard).join('')+'</div>' +
+      '<div class="card" style="margin-top:1rem"><div class="label">State mix</div><table><thead><tr><th>State</th><th class="r">Cases</th><th class="r">Overdue cases</th><th class="r">Overdue</th></tr></thead><tbody>' +
+      (lap.geo||[]).map(g => '<tr><td>'+g.state+'</td><td class="r">'+int.format(g.cases)+'</td><td class="r">'+int.format(g.odCases)+'</td><td class="r mono">'+cr(g.overdue)+'</td></tr>').join('') +
+      '</tbody></table></div><footer>Five shareable sheets for the team. Live feed refreshes itself. 16 Sep is frozen.</footer>';
+    return;
+  }
+  const b = lap.buckets.find(x => x.id === band);
+  const a = vs.buckets.find(x => x.id === band) || { cases:0, overdue:0 };
+  const dc = b.cases - a.cases, da = b.overdue - a.overdue;
+  document.getElementById("app").innerHTML = nav +
+    '<div class="banner '+(dc<0 || da<0?'ok':'bad')+'" style="margin-top:1rem"><strong>'+LABELS[band]+'</strong>' +
+    '<div class="hint" style="margin-top:.35rem">Today '+int.format(b.cases)+' / '+cr(b.overdue)+' \u00b7 16 Sep '+int.format(a.cases)+' / '+cr(a.overdue)+' \u00b7 \u0394 '+signed(dc,false)+' cases \u00b7 '+signed(da,true)+'</div></div>' +
+    '<div class="kpis">' +
+      kpi("Cases today", int.format(b.cases), "this band", {n: dc, t: signed(dc,false)+" vs 16 Sep"}) +
+      kpi("Overdue today", cr(b.overdue), LABELS[band], {n: da, t: signed(da,true)+" vs 16 Sep"}) +
+    '</div><footer>Send this link to the person on this bucket. Numbers follow the daily mail automatically.</footer>';
+}
+async function load() {
+  try {
+    const r = await fetch(LIVE + "?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("live " + r.status);
+    META = await r.json();
+    render();
+  } catch (e) {
+    document.getElementById("sub").textContent = "Live feed not reached \u2014 retrying";
+  }
+}
+window.addEventListener("hashchange", render);
+load();
+setInterval(load, 120000);
+</script>
+</body>
+</html>
