@@ -96,11 +96,7 @@ const SHEET = {
 };
 function sheetBar(id){
   const s=SHEET[id], p=id==="m0_1"?1:id==="m1_2"?2:id==="m2_3"?3:id==="m3_6"?4:5;
-  return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:.5rem">'
-    +'<a href="'+s.open+'" target="_blank" rel="noreferrer" class="chip" style="background:var(--ink);color:var(--paper);margin:0;text-align:center">Sheet P'+p+'</a>'
-    +'<a href="'+s.xlsx+'" target="_blank" rel="noreferrer" class="chip" style="margin:0;text-align:center;border:1px solid var(--line);background:var(--paper)">Excel</a>'
-    +'<a href="'+s.pdf+'" target="_blank" rel="noreferrer" class="chip" style="margin:0;text-align:center;border:1px solid var(--line);background:var(--paper)">PDF</a>'
-    +'</div>';
+  return '<a href="'+s.open+'" target="_blank" rel="noreferrer" class="chip" style="background:var(--ink);color:var(--paper);margin-bottom:.5rem;text-align:center">Google Sheet · Person '+p+'</a>';
 }
 const int = new Intl.NumberFormat("en-IN");
 const inr = new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0});
