@@ -87,6 +87,13 @@ const ORDER = ["m0_1","m1_2","m2_3","m3_6","m6p"];
 const LABELS = { m0_1:"1 EMI overdue", m1_2:"1–2 months", m2_3:"2–3 months", m3_6:"3–6 months", m6p:">6 months" };
 const SHORT = { m0_1:"1 EMI", m1_2:"1–2 m", m2_3:"2–3 m", m3_6:"3–6 m", m6p:">6 m" };
 const HINTS = { m0_1:"one EMI pending", m1_2:"31–60 days", m2_3:"61–90 days", m3_6:"91–180 days", m6p:"181+ days" };
+const SHEET = {
+  m0_1:"https://docs.google.com/spreadsheets/d/1VhtX6Fn0QytORo60JqX7oEsLF7L15ZB_HsGNiYwFip0/htmlview",
+  m1_2:"https://docs.google.com/spreadsheets/d/1mftNKBi0MGVp_M-7hnecNPZEMxyv_Yu3dropdFhHqjE/htmlview",
+  m2_3:"https://docs.google.com/spreadsheets/d/150YfpIlhEnhWfQwTXwd7-gU6hcKd5kSyJI8IrCgJRQQ/htmlview",
+  m3_6:"https://docs.google.com/spreadsheets/d/1myzXz6iJYQ9Blnj95WIAMPLm4B9i3twAFTzgI-SZTTg/htmlview",
+  m6p:"https://docs.google.com/spreadsheets/d/1zqMZL_yEE9eJIkrAKRwOMhCZ6kG4gWq0Eh1LCNL6avI/htmlview"
+};
 const int = new Intl.NumberFormat("en-IN");
 const inr = new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0});
 function cr(n){ const a=Math.abs(n); if(a>=1e7) return (n<0?"−":"")+"₹"+(a/1e7).toFixed(2)+" Cr"; if(a>=1e5) return (n<0?"−":"")+"₹"+(a/1e5).toFixed(2)+" L"; return inr.format(Math.round(n)); }
@@ -257,6 +264,7 @@ function render(){
         const b=lap.buckets.find(x=>x.id===id); const a=vs.buckets.find(x=>x.id===id)||{cases:0,overdue:0};
         const dc=b.cases-a.cases, da=b.overdue-a.overdue;
         return '<article class="card">'+chips(id,dc,da)+
+          '<a href="'+SHEET[id]+'" target="_blank" rel="noreferrer" class="chip" style="background:var(--ink);color:var(--paper);margin-bottom:.5rem">Google Sheet · Person '+(id==="m0_1"?1:id==="m1_2"?2:id==="m2_3"?3:id==="m3_6"?4:5)+'</a>'+
           '<button type="button" onclick="go(\''+id+'\')" style="display:block;width:100%;border:0;background:transparent;text-align:left;padding:0;color:inherit">'
           +'<p style="font-family:Fraunces,Georgia,serif;font-size:1.05rem;margin:.35rem 0 0">'+LABELS[id]+'</p><p class="hint">'+HINTS[id]+'</p>'
           +'<p class="num">'+int.format(b.cases)+'</p><p class="hint">cases in this mail</p>'
