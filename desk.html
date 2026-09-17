@@ -1,8 +1,83 @@
-const BASES = [
-  "https://cdn.jsdelivr.net/gh/perfectfinmart/pf-recovery-live@main",
-  "https://raw.githubusercontent.com/perfectfinmart/pf-recovery-live/main",
-  ""
-];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Recovery Desk — Perfect Finmart</title>
+  <meta name="theme-color" content="#1B3A4B" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#eef2ef; --paper:#f7f6f2; --ink:#1b3a4b; --muted:#5b6b73; --subtle:#8a969c; --line:#d5ddd8; --teal:#1f6f78; --ok:#1f7a4d; --danger:#9b2c2c; --ok-bg:#e7f4ec; --danger-bg:#f8e8e8; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; background:var(--bg); color:var(--ink); font-family:"Source Sans 3",system-ui,sans-serif; overflow-x:clip; max-width:100%; -webkit-text-size-adjust:100%; }
+    button { font: inherit; cursor: pointer; touch-action: manipulation; }
+    header { background:var(--paper); border-bottom:1px solid var(--line); padding-top: env(safe-area-inset-top); }
+    .wrap { max-width:72rem; margin:0 auto; padding:1.25rem 1rem; min-width:0; }
+    .kicker { font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--teal); font-weight:500; }
+    h1 { font-family:Fraunces,Georgia,serif; font-weight:500; font-size:1.6rem; margin:.25rem 0 0; line-height:1.1; }
+    .sub { font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--subtle); margin:.35rem 0 0; line-height:1.45; word-break:break-word; }
+    .banner { margin:1rem 0 0; padding:1rem; border-radius:.75rem; background:var(--paper); }
+    .banner.ok { border:1px solid #cfe6d7; background:#e7f4ec; }
+    .banner.bad { border:1px solid #edd0d0; background:#f8e8e8; }
+    .title { font-family:Fraunces,Georgia,serif; font-size:1.2rem; font-weight:500; margin:.25rem 0 0; }
+    .kicker2 { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--subtle); font-weight:500; }
+    .compare { width:100%; border-collapse:collapse; margin-top:.8rem; font-size:14px; }
+    .compare th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--subtle); font-weight:500; text-align:left; padding:0 .4rem .4rem 0; }
+    .compare td { padding:.5rem .4rem .5rem 0; border-top:1px solid var(--line); }
+    .legend { font-size:13px; color:var(--muted); margin-top:.7rem; }
+    .kpis, .bands { display:grid; gap:.75rem; margin-top:1rem; }
+    .kpis { grid-template-columns: 1fr 1fr; }
+    .bands { grid-template-columns: 1fr; }
+    @media (min-width:640px){ .bands{grid-template-columns:repeat(2,1fr);} h1{font-size:2rem;} }
+    @media (min-width:900px){ .kpis{grid-template-columns:repeat(4,1fr);} .bands{grid-template-columns:repeat(5,1fr);} }
+    .card { background:var(--paper); border-radius:.9rem; padding:1rem; text-align:left; border:0; width:100%; color:inherit; }
+    .label { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+    .num { font-family:Fraunces,Georgia,serif; font-size:1.45rem; font-weight:500; margin:.35rem 0 0; }
+    .hint { font-size:13px; color:var(--muted); margin-top:.25rem; line-height:1.45; }
+    .ok { color:var(--ok); } .bad { color:var(--danger); }
+    .chip { font-size:12px; font-weight:600; padding:.45rem .6rem; border-radius:.45rem; display:block; width:100%; text-align:left; border:0; margin:0 0 .25rem; cursor:pointer; }
+    .chip.ok { background:var(--ok-bg); color:var(--ok); } .chip.bad { background:var(--danger-bg); color:var(--danger); }
+    .modal { position:fixed; inset:0; background:rgba(27,58,75,.45); z-index:50; display:flex; align-items:stretch; justify-content:center; padding:0; }
+    .modal[hidden] { display:none; }
+    .panel { background:var(--paper); color:var(--ink); max-width:42rem; width:100%; max-height:100dvh; overflow:auto; border-radius:0; }
+    .panel-h { display:flex; justify-content:space-between; gap:1rem; padding:1rem 1rem .6rem; border-bottom:1px solid var(--line); }
+    .close { min-height:44px; padding:0 1rem; border:1px solid var(--line); background:var(--paper); border-radius:.45rem; }
+    .nav { display:flex; gap:.35rem; margin-top:1rem; background:var(--paper); padding:.25rem; border-radius:.7rem; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .nav button { flex:0 0 auto; min-width:4.5rem; min-height:44px; padding:.7rem .6rem; border-radius:.5rem; border:0; background:transparent; font-size:14px; font-weight:500; color:var(--muted); }
+    .nav button.on { background:var(--ink); color:var(--paper); }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { text-align:left; padding:.55rem .4rem; border-bottom:1px solid var(--line); }
+    th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+    td.r, th.r { text-align:right; font-variant-numeric:tabular-nums; }
+    .mono { font-family:"IBM Plex Mono",monospace; }
+    .scroll { overflow-x:auto; margin-top:1rem; background:var(--paper); border-radius:.9rem; -webkit-overflow-scrolling:touch; }
+    footer { color:var(--subtle); font-size:12px; margin:1.5rem 0; padding-bottom: env(safe-area-inset-bottom); }
+    @media (max-width:639px){
+      .compare thead { display:none; }
+      .compare tr { display:block; padding:.55rem 0; }
+      .compare td { display:block; border:0; padding:.12rem 0; }
+      .compare td:first-child { font-weight:600; }
+    }
+  </style>
+</head>
+<body>
+  <header><div class="wrap">
+    <p class="kicker">Perfect Finmart · F-series</p>
+    <h1>Daily monitor</h1>
+    <p class="sub" id="sub">Loading…</p>
+  </div></header>
+  <main class="wrap"><div id="app"></div></main>
+  <div id="flow-modal" class="modal" hidden onclick="if(event.target===this)closeFlow()">
+    <div class="panel" role="dialog" aria-modal="true">
+      <div class="panel-h"><div><p class="kicker2" id="flow-sub"></p><p class="title" id="flow-title"></p></div>
+        <button type="button" class="close" onclick="closeFlow()">Close</button></div>
+      <div id="flow-body"></div>
+    </div>
+  </div>
+  <script>
+const BASE = "https://raw.githubusercontent.com/perfectfinmart/pf-recovery-live/main";
 const ORDER = ["m0_1","m1_2","m2_3","m3_6","m6p"];
 const LABELS = { m0_1:"0–1 month", m1_2:"1–2 months", m2_3:"2–3 months", m3_6:"3–6 months", m6p:">6 months" };
 const SHORT = { m0_1:"0–1 m", m1_2:"1–2 m", m2_3:"2–3 m", m3_6:"3–6 m", m6p:">6 m" };
@@ -169,20 +244,19 @@ function render(){
     +'<div class="scroll"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Last paid</th><th>Mobile</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 async function j(path){
-  for (const base of BASES) {
-    try {
-      const url = (base ? base+'/' : '') + path + '?t=' + Date.now();
-      const r = await fetch(url, { cache: 'no-store' });
-      if (r.ok) {
-        const ct = r.headers.get('content-type') || '';
-        if (ct.includes('text/html')) continue;
-        return r.json();
-      }
-    } catch (e) {}
-  }
+  try {
+    const r = await fetch(BASE+'/'+path+'?t='+Date.now()+'&n='+Math.random().toString(36).slice(2), {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+    });
+    if (r.ok) return r.json();
+  } catch(e){}
   return null;
 }
 async function load(){
+  if (load.busy) return;
+  load.busy = true;
+  document.getElementById('sub').textContent = 'Refreshing live dump…';
   META = await j('live-meta.json');
   const packs = await Promise.all(['live-m0_1.json','live-m0_1a.json','live-m0_1b.json','live-m1_2.json','live-m2_3.json','live-m3_6.json','live-m6p.json'].map(j));
   const merged = packs.flatMap(x => Array.isArray(x) ? x : []);
@@ -196,6 +270,7 @@ async function load(){
     if (Object.keys(next).length) FLOW = next;
   }
   if(META) render(); else document.getElementById('sub').textContent='Live feed not reached';
+  load.busy = false;
 }
 window.go=go;
 window.showFlow=showFlow;
@@ -203,4 +278,10 @@ window.closeFlow=closeFlow;
 window.addEventListener('hashchange', render);
 window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeFlow(); });
 load();
-setInterval(load, 120000);
+setInterval(load, 60000);
+window.addEventListener('focus', load);
+window.addEventListener('pageshow', load);
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') load(); });
+</script>
+</body>
+</html>
