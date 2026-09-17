@@ -82,7 +82,7 @@ const BASES = [
   "https://cdn.jsdelivr.net/gh/perfectfinmart/pf-recovery-live@main",
   "https://raw.githubusercontent.com/perfectfinmart/pf-recovery-live/main"
 ];
-const FALLBACK_META = {"asOf":"2026-09-17","source":"Excel files for Grok from WhatsApp date (17-09-2026)","entity":"PERFECT FINSEC PVT. LTD.","updatedAt":"2026-09-17T09:38:51.098Z","processedMessageId":"1a0adfd9dccd14b7","headline":"17 Sep improved vs 16 Sep.","later":"2026-09-17","earlier":"2026-09-16","lap":{"cases":1406,"current":955,"odCases":438,"overdue":22747436.1,"npa91":186,"npa91Overdue":17288210.1,"paid7d":63,"paid30d":235,"noReceipt":0,"silent2026":23,"buckets":[{"id":"m0_1","label":"1 EMI overdue","cases":142,"overdue":2031511},{"id":"m1_2","label":"More than 1, less than 2","cases":52,"overdue":1211407},{"id":"m2_3","label":"2 to less than 3","cases":58,"overdue":2216308},{"id":"m3_6","label":"3 to 6 months","cases":82,"overdue":4985229},{"id":"m6p","label":"More than 6 months","cases":104,"overdue":12302981.1}],"geo":[{"state":"DELHI","cases":647,"odCases":218,"overdue":12123224.31},{"state":"UTTAR PRADESH","cases":466,"odCases":143,"overdue":6011562.02},{"state":"HARYANA","cases":197,"odCases":58,"overdue":3189787.77},{"state":"BIHAR","cases":96,"odCases":32,"overdue":1450452}]},"vs16Sep":{"asOf":"2026-09-16","cases":1406,"current":796,"odCases":598,"overdue":25335206.1,"npa91":190,"npa91Overdue":17542197.1,"buckets":[{"id":"m0_1","label":"1 EMI overdue","cases":279,"overdue":3792944},{"id":"m1_2","label":"More than 1, less than 2","cases":69,"overdue":1678710},{"id":"m2_3","label":"2 to less than 3","cases":60,"overdue":2321355},{"id":"m3_6","label":"3 to 6 months","cases":95,"overdue":5911038},{"id":"m6p","label":"More than 6 months","cases":95,"overdue":11631159.1}]},"book":{"cases":1406,"assets":[{"asset":"LAP","cases":1406,"odCases":451,"overdue":22775026.1,"pos":338120053.1}]},"disbTotal":0,"npaCount":186,"ops":{"auto":true,"mailTrigger":true,"clockIst":"14:30","catchUpIst":"15:00","timezone":"Asia/Kolkata","laptopOff":true}};
+const FALLBACK_META = {"asOf":"2026-09-17","source":"Excel files for Grok from WhatsApp date (17-09-2026)","entity":"PERFECT FINSEC PVT. LTD.","updatedAt":"2026-09-17T09:43:49.314Z","processedMessageId":"1a0adfd9dccd14b7","headline":"17 Sep improved vs 16 Sep.","later":"2026-09-17","earlier":"2026-09-16","insights":{"gist":"17 Sep is better than 16 Sep: 160 fewer unpaid files and \u20b925.88 L less overdue. The win is 1 EMI: 137 files left that desk. The leak is >6 m: 9 files added.","summary":"Improved: 1 EMI, 1\u20132 m, 2\u20133 m, 3\u20136 m. Worsened: >6 m. Unpaid 598 \u2192 438. Overdue \u20b92.53 Cr \u2192 \u20b92.27 Cr.","learnings":["1 EMI chase is working. 279 \u2192 142 files. Keep calling this list daily.","More than 6 months worsened: 95 \u2192 104. Files are ageing in. Person 5 needs a daily call plan.","Learning: the team is good at fresh bounce, weak at old files. Person 1 keeps 1 EMI. Person 5 only works >6 months.","3\u20136 months reduced 13 files. Last window before old stock \u2014 protect this.","159 more files are now current. Do not let them bounce back to 1 EMI.","DELHI holds 53% of overdue. Put calling hours there first."],"actions":["Open >6 m \u2014 9 files added since 16 Sep. Ask what was not called.","Person 1: finish today\u2019s 142 1-EMI files.","Person 5: 104 files / \u20b91.23 Cr past 6 months. Top 10 by amount first."]},"lap":{"cases":1406,"current":955,"odCases":438,"overdue":22747436.1,"npa91":186,"npa91Overdue":17288210.1,"paid7d":63,"paid30d":235,"noReceipt":0,"silent2026":23,"buckets":[{"id":"m0_1","label":"1 EMI overdue","cases":142,"overdue":2031511},{"id":"m1_2","label":"More than 1, less than 2","cases":52,"overdue":1211407},{"id":"m2_3","label":"2 to less than 3","cases":58,"overdue":2216308},{"id":"m3_6","label":"3 to 6 months","cases":82,"overdue":4985229},{"id":"m6p","label":"More than 6 months","cases":104,"overdue":12302981.1}],"geo":[{"state":"DELHI","cases":647,"odCases":218,"overdue":12123224.31},{"state":"UTTAR PRADESH","cases":466,"odCases":143,"overdue":6011562.02},{"state":"HARYANA","cases":197,"odCases":58,"overdue":3189787.77},{"state":"BIHAR","cases":96,"odCases":32,"overdue":1450452}]},"vs16Sep":{"asOf":"2026-09-16","cases":1406,"current":796,"odCases":598,"overdue":25335206.1,"npa91":190,"npa91Overdue":17542197.1,"buckets":[{"id":"m0_1","label":"1 EMI overdue","cases":279,"overdue":3792944},{"id":"m1_2","label":"More than 1, less than 2","cases":69,"overdue":1678710},{"id":"m2_3","label":"2 to less than 3","cases":60,"overdue":2321355},{"id":"m3_6","label":"3 to 6 months","cases":95,"overdue":5911038},{"id":"m6p","label":"More than 6 months","cases":95,"overdue":11631159.1}]},"book":{"cases":1406,"assets":[{"asset":"LAP","cases":1406,"odCases":451,"overdue":22775026.1,"pos":338120053.1}]},"disbTotal":0,"npaCount":186,"ops":{"auto":true,"mailTrigger":true,"clockIst":"14:30","catchUpIst":"15:00","timezone":"Asia/Kolkata","laptopOff":true}};
 const ORDER = ["m0_1","m1_2","m2_3","m3_6","m6p"];
 const LABELS = { m0_1:"1 EMI overdue", m1_2:"1–2 months", m2_3:"2–3 months", m3_6:"3–6 months", m6p:">6 months" };
 const SHORT = { m0_1:"1 EMI", m1_2:"1–2 m", m2_3:"2–3 m", m3_6:"3–6 m", m6p:">6 m" };
@@ -211,6 +211,17 @@ function chips(id,dc,da){
 function nav(cur){
   return '<nav class="nav"><button type="button" class="'+(!cur?'on':'')+'" onclick="go(\'\')">Summary</button>'+ORDER.map(id=>'<button type="button" class="'+(cur===id?'on':'')+'" onclick="go(\''+id+'\')">'+SHORT[id]+'</button>').join('')+'</nav>';
 }
+function gistBox(){
+  const ins = META.insights;
+  if(!ins || !ins.gist) return "";
+  const item = (t) => typeof t === "string" ? t : (t && t.text) ? t.text : "";
+  const learns = (ins.learnings||[]).map(item).filter(Boolean).map(s=>'<li class="hint" style="margin:.4rem 0">'+s+'</li>').join("");
+  const acts = (ins.actions||[]).map(item).filter(Boolean).map(s=>'<li class="hint" style="margin:.4rem 0">'+s+'</li>').join("");
+  return '<div class="banner" style="margin-top:1rem"><p class="kicker2">Gist · from this dump</p><p class="title">'+ins.gist+'</p><p class="hint">'+ (ins.summary||"") +'</p>'
+    +(learns?'<p class="kicker2" style="margin-top:.85rem">Learnings</p><ul style="margin:.2rem 0 0;padding-left:1.15rem">'+learns+'</ul>':'')
+    +(acts?'<p class="kicker2" style="margin-top:.85rem">Do this today</p><ol style="margin:.2rem 0 0;padding-left:1.15rem">'+acts+'</ol>':'')
+    +'</div>';
+}
 function render(){
   if(!META) return;
   const lap=META.lap, vs=META.vs16Sep, cur=band();
@@ -220,6 +231,7 @@ function render(){
   if(!cur){
     document.getElementById('app').innerHTML =
       boardBanner(lap, vs)
+      +gistBox()
       +nav('')+
       '<div class="kpis">'
         +kpi('LAP files', int.format(lap.cases), int.format(lap.current)+' paying on time', {n:lap.cases-vs.cases,t:result(lap.cases-vs.cases,false)})
