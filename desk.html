@@ -249,7 +249,7 @@ function render(){
     document.getElementById('app').innerHTML = nav('huddle')
       +'<div class="banner" style="margin-top:1rem"><p class="kicker2">Daily 6 pm meeting · standing job</p><p class="title">Name these files in the room</p><p class="hint">Tomorrow we check the same file numbers. If still unpaid, that person answers. This is every day, not a one-off.</p></div>'
       +'<div class="scroll"><table><thead><tr><th>#</th><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Why</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
-      +'<footer>4 pm mail carries this list. 6 pm mail repeats it for the meeting.</footer>';
+      +'<footer>In the app by 4 pm. Open this tab in the meeting. No 6 pm mail.</footer>';
     return;
   }
   document.getElementById('sub').textContent = int.format(lap.odCases)+' overdue · compared with 16 Sep start · '+ (META.headline||'');
