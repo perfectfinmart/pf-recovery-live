@@ -64,9 +64,9 @@
 </head>
 <body>
   <header><div class="wrap">
-    <p class="kicker">Perfect Finmart · F-series</p>
-    <h1>Daily monitor</h1>
-    <p class="sub" id="sub">Loading…</p>
+    <p class="kicker">Perfect Finmart · F-series · TODAY’S DUMP</p>
+    <h1 id="h1">17 Sep 2026</h1>
+    <p class="sub" id="sub">451 overdue · compared with 16 Sep start</p>
   </div></header>
   <main class="wrap"><div id="app"></div></main>
   <div id="flow-modal" class="modal" hidden onclick="if(event.target===this)closeFlow()">
@@ -157,7 +157,7 @@ function boardBanner(lap, vs){
     +'<tr><td>Cases not paid</td><td class="mono">'+int.format(earlier.odCases)+'</td><td class="mono">'+int.format(later.odCases)+'</td><td class="'+cls(caseDelta)+'">'+laterCopy(later.odCases,earlier.odCases,false,laterL,earlierL)+'</td></tr>'
     +'<tr><td>Money not paid</td><td class="mono">'+cr(earlier.overdue)+'</td><td class="mono">'+cr(later.overdue)+'</td><td class="'+cls(odDelta)+'">'+laterCopy(later.overdue,earlier.overdue,true,laterL,earlierL)+'</td></tr>'
     +'<tr><td>Cases late 91 days+</td><td class="mono">'+int.format(earlier.npa91)+'</td><td class="mono">'+int.format(later.npa91)+'</td><td class="'+cls(npaDelta)+'">'+laterCopy(later.npa91,earlier.npa91,false,laterL,earlierL)+'</td></tr>'
-    +'</tbody></table><p class="legend">Example: 11 Sep vs 16 Sep → we say if 16 Sep improved or worsened. 19 Sep vs 16 Sep → we say if 19 Sep improved or worsened.</p></div>';
+    +'</tbody></table><p class="legend">We always judge the later day against 16 Sep (the start line). Green = improved. Red = worsened.</p></div>';
 }
 let META=null, ROWS=[], FLOW={};
 function band(){ const h=(location.hash||"").replace(/^#\/?/,""); const m=h.match(/^sheet\/(m0_1|m1_2|m2_3|m3_6|m6p)$/); return m?m[1]:""; }
@@ -214,7 +214,8 @@ function nav(cur){
 function render(){
   if(!META) return;
   const lap=META.lap, vs=META.vs16Sep, cur=band();
-  document.getElementById('sub').textContent = 'This mail '+fd(META.asOf)+' · we only compare with 16 Sep start';
+  document.getElementById('h1').textContent = fd(META.asOf);
+  document.getElementById('sub').textContent = int.format(lap.odCases)+' overdue · compared with 16 Sep start · '+ (META.headline||'');
   const odDelta=lap.overdue-vs.overdue, caseDelta=lap.odCases-vs.odCases;
   if(!cur){
     document.getElementById('app').innerHTML =
