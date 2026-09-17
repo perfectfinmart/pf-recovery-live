@@ -159,10 +159,10 @@ function boardBanner(lap, vs){
     +'<tr><td>Cases late 91 days+</td><td class="mono">'+int.format(earlier.npa91)+'</td><td class="mono">'+int.format(later.npa91)+'</td><td class="'+cls(npaDelta)+'">'+laterCopy(later.npa91,earlier.npa91,false,laterL,earlierL)+'</td></tr>'
     +'</tbody></table><p class="legend">We always judge the later day against 16 Sep (the start line). Green = improved. Red = worsened.</p></div>';
 }
-let META=null, ROWS=[], FLOW={};
-function band(){ const h=(location.hash||"").replace(/^#\/?/,""); const m=h.match(/^sheet\/(m0_1|m1_2|m2_3|m3_6|m6p)$/); return m?m[1]:""; }
+let META=null, ROWS=[], FLOW={}, HUDDLE=null;
+function band(){ const h=(location.hash||"").replace(/^#\/?/,""); if(h==="huddle") return "huddle"; const m=h.match(/^sheet\/(m0_1|m1_2|m2_3|m3_6|m6p)$/); return m?m[1]:""; }
 function go(id){
-  const hash = id ? "#/sheet/"+id : "#";
+  const hash = !id ? "#" : id==="huddle" ? "#/huddle" : "#/sheet/"+id;
   try { history.replaceState(null, "", location.pathname + location.search + hash); }
   catch (e) { try { location.hash = hash; } catch (e2) {} }
   render();
@@ -209,7 +209,9 @@ function chips(id,dc,da){
   return out.join('');
 }
 function nav(cur){
-  return '<nav class="nav"><button type="button" class="'+(!cur?'on':'')+'" onclick="go(\'\')">Summary</button>'+ORDER.map(id=>'<button type="button" class="'+(cur===id?'on':'')+'" onclick="go(\''+id+'\')">'+SHORT[id]+'</button>').join('')+'</nav>';
+  return '<nav class="nav"><button type="button" class="'+(!cur?'on':'')+'" onclick="go(\'\')">Summary</button>'
+    +'<button type="button" class="'+(cur==='huddle'?'on':'')+'" onclick="go(\'huddle\')">6 pm</button>'
+    +ORDER.map(id=>'<button type="button" class="'+(cur===id?'on':'')+'" onclick="go(\''+id+'\')">'+SHORT[id]+'</button>').join('')+'</nav>';
 }
 function gistBox(){
   const ins = META.insights;
@@ -224,8 +226,21 @@ function gistBox(){
 }
 function render(){
   if(!META) return;
-  const lap=META.lap, vs=META.vs16Sep, cur=band();
+  const lap=META.lap, vs=META.vs16Sep;
   document.getElementById('h1').textContent = fd(META.asOf);
+  document.getElementById('sub').textContent = int.format(lap.odCases)+' overdue · compared with 16 Sep start';
+  const cur=band();
+  if(cur==="huddle"){
+    const pack = HUDDLE || META.huddle || { named: [] };
+    const named = pack.named || [];
+    const rows = named.map((n,i)=>'<tr><td class="mono">'+(i+1)+'</td><td class="mono">'+(n.caseNo||'')+'</td><td>'+(n.name||'—')+'</td><td class="r mono">'+(n.lateBy||'')+'</td><td class="r mono">'+cr(n.overdue)+'</td><td>'+(n.why||'')+'</td></tr>').join('')
+      || '<tr><td colspan="6" style="padding:2rem;text-align:center">Huddle list not on this dump yet.</td></tr>';
+    document.getElementById('app').innerHTML = nav('huddle')
+      +'<div class="banner" style="margin-top:1rem"><p class="kicker2">Daily 6 pm meeting · standing job</p><p class="title">Name these files in the room</p><p class="hint">Tomorrow we check the same file numbers. If still unpaid, that person answers. This is every day, not a one-off.</p></div>'
+      +'<div class="scroll"><table><thead><tr><th>#</th><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Why</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +'<footer>4 pm mail carries this list. 6 pm mail repeats it for the meeting.</footer>';
+    return;
+  }
   document.getElementById('sub').textContent = int.format(lap.odCases)+' overdue · compared with 16 Sep start · '+ (META.headline||'');
   const odDelta=lap.overdue-vs.overdue, caseDelta=lap.odCases-vs.odCases;
   if(!cur){
@@ -291,6 +306,7 @@ async function load(){
     ORDER.forEach((id,i) => { if (fp[i] && (fp[i].added || fp[i].reduced)) next[id] = fp[i]; });
     if (Object.keys(next).length) FLOW = next;
   }
+  HUDDLE = await j('live-huddle.json') || (META && META.huddle) || HUDDLE;
   if(META) render(); else document.getElementById('sub').textContent='Live feed not reached';
   load.busy = false;
 }
