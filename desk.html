@@ -77,7 +77,11 @@
     </div>
   </div>
   <script>
-const BASE = "https://raw.githubusercontent.com/perfectfinmart/pf-recovery-live/main";
+const BASES = [
+  "",
+  "https://cdn.jsdelivr.net/gh/perfectfinmart/pf-recovery-live@main",
+  "https://raw.githubusercontent.com/perfectfinmart/pf-recovery-live/main"
+];
 const ORDER = ["m0_1","m1_2","m2_3","m3_6","m6p"];
 const LABELS = { m0_1:"0–1 month", m1_2:"1–2 months", m2_3:"2–3 months", m3_6:"3–6 months", m6p:">6 months" };
 const SHORT = { m0_1:"0–1 m", m1_2:"1–2 m", m2_3:"2–3 m", m3_6:"3–6 m", m6p:">6 m" };
@@ -244,13 +248,20 @@ function render(){
     +'<div class="scroll"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Last paid</th><th>Mobile</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 async function j(path){
-  try {
-    const r = await fetch(BASE+'/'+path+'?t='+Date.now()+'&n='+Math.random().toString(36).slice(2), {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
-    });
-    if (r.ok) return r.json();
-  } catch(e){}
+  const q = '?t='+Date.now()+'&n='+Math.random().toString(36).slice(2);
+  for (const base of BASES) {
+    try {
+      const url = (base ? base+'/' : '') + path + q;
+      const r = await fetch(url, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+      });
+      if (!r.ok) continue;
+      const ct = r.headers.get('content-type') || '';
+      if (ct.includes('text/html')) continue;
+      return await r.json();
+    } catch(e){}
+  }
   return null;
 }
 async function load(){

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Recovery Desk — Perfect Finmart</title>
   <meta name="theme-color" content="#1B3A4B" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -11,13 +11,13 @@
   <style>
     :root { --bg:#eef2ef; --paper:#f7f6f2; --ink:#1b3a4b; --muted:#5b6b73; --subtle:#8a969c; --line:#d5ddd8; --teal:#1f6f78; --ok:#1f7a4d; --danger:#9b2c2c; --ok-bg:#e7f4ec; --danger-bg:#f8e8e8; }
     * { box-sizing: border-box; }
-    html, body { margin:0; background:var(--bg); color:var(--ink); font-family:"Source Sans 3",system-ui,sans-serif; }
-    button { font: inherit; cursor: pointer; }
-    header { background:var(--paper); border-bottom:1px solid var(--line); }
-    .wrap { max-width:72rem; margin:0 auto; padding:1.25rem 1rem; }
+    html, body { margin:0; background:var(--bg); color:var(--ink); font-family:"Source Sans 3",system-ui,sans-serif; overflow-x:clip; max-width:100%; -webkit-text-size-adjust:100%; }
+    button { font: inherit; cursor: pointer; touch-action: manipulation; }
+    header { background:var(--paper); border-bottom:1px solid var(--line); padding-top: env(safe-area-inset-top); }
+    .wrap { max-width:72rem; margin:0 auto; padding:1.25rem 1rem; min-width:0; }
     .kicker { font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--teal); font-weight:500; }
-    h1 { font-family:Fraunces,Georgia,serif; font-weight:500; font-size:2rem; margin:.25rem 0 0; }
-    .sub { font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--subtle); margin:.35rem 0 0; }
+    h1 { font-family:Fraunces,Georgia,serif; font-weight:500; font-size:1.6rem; margin:.25rem 0 0; line-height:1.1; }
+    .sub { font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--subtle); margin:.35rem 0 0; line-height:1.45; word-break:break-word; }
     .banner { margin:1rem 0 0; padding:1rem; border-radius:.75rem; background:var(--paper); }
     .banner.ok { border:1px solid #cfe6d7; background:#e7f4ec; }
     .banner.bad { border:1px solid #edd0d0; background:#f8e8e8; }
@@ -28,29 +28,38 @@
     .compare td { padding:.5rem .4rem .5rem 0; border-top:1px solid var(--line); }
     .legend { font-size:13px; color:var(--muted); margin-top:.7rem; }
     .kpis, .bands { display:grid; gap:.75rem; margin-top:1rem; }
+    .kpis { grid-template-columns: 1fr 1fr; }
+    .bands { grid-template-columns: 1fr; }
+    @media (min-width:640px){ .bands{grid-template-columns:repeat(2,1fr);} h1{font-size:2rem;} }
     @media (min-width:900px){ .kpis{grid-template-columns:repeat(4,1fr);} .bands{grid-template-columns:repeat(5,1fr);} }
     .card { background:var(--paper); border-radius:.9rem; padding:1rem; text-align:left; border:0; width:100%; color:inherit; }
     .label { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
-    .num { font-family:Fraunces,Georgia,serif; font-size:1.85rem; font-weight:500; margin:.35rem 0 0; }
+    .num { font-family:Fraunces,Georgia,serif; font-size:1.45rem; font-weight:500; margin:.35rem 0 0; }
     .hint { font-size:13px; color:var(--muted); margin-top:.25rem; line-height:1.45; }
     .ok { color:var(--ok); } .bad { color:var(--danger); }
     .chip { font-size:12px; font-weight:600; padding:.45rem .6rem; border-radius:.45rem; display:block; width:100%; text-align:left; border:0; margin:0 0 .25rem; cursor:pointer; }
     .chip.ok { background:var(--ok-bg); color:var(--ok); } .chip.bad { background:var(--danger-bg); color:var(--danger); }
-    .modal { position:fixed; inset:0; background:rgba(27,58,75,.45); z-index:50; display:flex; align-items:flex-start; justify-content:center; padding:4rem 1rem 1rem; }
+    .modal { position:fixed; inset:0; background:rgba(27,58,75,.45); z-index:50; display:flex; align-items:stretch; justify-content:center; padding:0; }
     .modal[hidden] { display:none; }
-    .panel { background:var(--paper); color:var(--ink); max-width:42rem; width:100%; max-height:80vh; overflow:auto; border-radius:.9rem; }
+    .panel { background:var(--paper); color:var(--ink); max-width:42rem; width:100%; max-height:100dvh; overflow:auto; border-radius:0; }
     .panel-h { display:flex; justify-content:space-between; gap:1rem; padding:1rem 1rem .6rem; border-bottom:1px solid var(--line); }
     .close { min-height:44px; padding:0 1rem; border:1px solid var(--line); background:var(--paper); border-radius:.45rem; }
-    .nav { display:flex; gap:.35rem; margin-top:1rem; background:var(--paper); padding:.25rem; border-radius:.7rem; flex-wrap:wrap; }
-    .nav button { flex:1; min-width:4.5rem; padding:.7rem .4rem; border-radius:.5rem; border:0; background:transparent; font-size:14px; font-weight:500; color:var(--muted); }
+    .nav { display:flex; gap:.35rem; margin-top:1rem; background:var(--paper); padding:.25rem; border-radius:.7rem; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .nav button { flex:0 0 auto; min-width:4.5rem; min-height:44px; padding:.7rem .6rem; border-radius:.5rem; border:0; background:transparent; font-size:14px; font-weight:500; color:var(--muted); }
     .nav button.on { background:var(--ink); color:var(--paper); }
     table { width:100%; border-collapse:collapse; font-size:14px; }
     th, td { text-align:left; padding:.55rem .4rem; border-bottom:1px solid var(--line); }
     th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
     td.r, th.r { text-align:right; font-variant-numeric:tabular-nums; }
     .mono { font-family:"IBM Plex Mono",monospace; }
-    .scroll { overflow-x:auto; margin-top:1rem; background:var(--paper); border-radius:.9rem; }
-    footer { color:var(--subtle); font-size:12px; margin:1.5rem 0; }
+    .scroll { overflow-x:auto; margin-top:1rem; background:var(--paper); border-radius:.9rem; -webkit-overflow-scrolling:touch; }
+    footer { color:var(--subtle); font-size:12px; margin:1.5rem 0; padding-bottom: env(safe-area-inset-bottom); }
+    @media (max-width:639px){
+      .compare thead { display:none; }
+      .compare tr { display:block; padding:.55rem 0; }
+      .compare td { display:block; border:0; padding:.12rem 0; }
+      .compare td:first-child { font-weight:600; }
+    }
   </style>
 </head>
 <body>
@@ -68,26 +77,222 @@
     </div>
   </div>
   <script>
-  (function(){
-    var t = Date.now();
-    var URLS = [
-      "https://raw.githubusercontent.com/perfectfinmart/pf-recovery-live/main/desk.js?t="+t,
-      "https://cdn.jsdelivr.net/gh/perfectfinmart/pf-recovery-live@main/desk.js?t="+t
-    ];
-    function run(code){ (0,eval)(code); }
-    function fail(){
-      var el = document.getElementById("sub");
-      if (el) el.textContent = "Could not start the desk. Refresh once.";
-    }
-    function tryUrl(i){
-      if (i >= URLS.length) return fail();
-      fetch(URLS[i], {cache:"no-store"})
-        .then(function(r){ if(!r.ok) throw new Error("bad"); return r.text(); })
-        .then(run)
-        .catch(function(){ tryUrl(i+1); });
-    }
-    tryUrl(0);
-  })();
-  </script>
+const BASES = [
+  "",
+  "https://cdn.jsdelivr.net/gh/perfectfinmart/pf-recovery-live@main",
+  "https://raw.githubusercontent.com/perfectfinmart/pf-recovery-live/main"
+];
+const ORDER = ["m0_1","m1_2","m2_3","m3_6","m6p"];
+const LABELS = { m0_1:"0–1 month", m1_2:"1–2 months", m2_3:"2–3 months", m3_6:"3–6 months", m6p:">6 months" };
+const SHORT = { m0_1:"0–1 m", m1_2:"1–2 m", m2_3:"2–3 m", m3_6:"3–6 m", m6p:">6 m" };
+const HINTS = { m0_1:"0–30 days", m1_2:"31–60 days", m2_3:"61–90 days", m3_6:"91–180 days", m6p:"181+ days" };
+const int = new Intl.NumberFormat("en-IN");
+const inr = new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0});
+function cr(n){ const a=Math.abs(n); if(a>=1e7) return (n<0?"−":"")+"₹"+(a/1e7).toFixed(2)+" Cr"; if(a>=1e5) return (n<0?"−":"")+"₹"+(a/1e5).toFixed(2)+" L"; return inr.format(Math.round(n)); }
+function fd(v){ if(!v) return "—"; const [y,m,d]=v.split("-"); return d+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(m)-1]+" "+y; }
+function cls(n){ return n<-0.5?"ok":n>0.5?"bad":""; }
+function sd(v){ if(!v) return "—"; const [y,m,d]=v.split("-"); return Number(d)+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(m)-1]; }
+function laterCopy(later, earlier, money, laterL, earlierL){
+  const d = later - earlier;
+  if(Math.abs(d)<0.5) return laterL+" same as "+earlierL;
+  const body = money ? cr(Math.abs(d)) : int.format(Math.abs(d));
+  const more = d>0 ? "more" : "less";
+  const word = d<0 ? "Improved" : "Worsened";
+  return laterL+": "+body+" "+more+" than "+earlierL+". "+word+".";
+}
+function result(d, money){
+  if(Math.abs(d)<0.5) return "Same";
+  const body = money ? cr(Math.abs(d)) : int.format(Math.abs(d));
+  const more = d>0 ? "more" : "less";
+  const word = d<0 ? "Improved" : "Worsened";
+  return body+" "+more+". "+word+".";
+}
+function boardBanner(lap, vs){
+  const dumpAsOf = META.asOf;
+  const startAsOf = "2026-09-16";
+  const dumpLater = dumpAsOf >= startAsOf;
+  const laterL = sd(dumpLater ? dumpAsOf : startAsOf);
+  const earlierL = sd(dumpLater ? startAsOf : dumpAsOf);
+  const later = dumpLater ? lap : vs;
+  const earlier = dumpLater ? vs : lap;
+  const same = dumpAsOf === startAsOf;
+  const odDelta = later.overdue - earlier.overdue;
+  const caseDelta = later.odCases - earlier.odCases;
+  const npaDelta = later.npa91 - earlier.npa91;
+  const worse = [];
+  const better = [];
+  ORDER.forEach(id => {
+    const l = later.buckets.find(x=>x.id===id) || {cases:0,overdue:0};
+    const e = earlier.buckets.find(x=>x.id===id) || {cases:0,overdue:0};
+    if (l.cases-e.cases>0 || l.overdue-e.overdue>0.5) worse.push(SHORT[id]);
+    else if (l.cases-e.cases<0 || l.overdue-e.overdue<-0.5) better.push(SHORT[id]);
+  });
+  const worseList = worse.join(", ") || "none";
+  const betterList = better.join(", ") || "none";
+  let title, why, tone;
+  if(same){
+    title = laterL+" is the start day.";
+    why = "The next mail will be judged against this day. We always talk about the later date.";
+    tone = "";
+  } else if(odDelta < -0.5 && caseDelta <= 0){
+    title = laterL+" improved vs "+earlierL+".";
+    why = "We always judge the later day. Buckets that worsened: "+worseList+". Buckets that improved: "+betterList+".";
+    tone = "ok";
+  } else if(odDelta > 0.5 && caseDelta >= 0){
+    title = laterL+" worsened vs "+earlierL+".";
+    why = "We always judge the later day. Buckets that worsened: "+worseList+". Buckets that improved: "+betterList+".";
+    tone = "bad";
+  } else {
+    title = laterL+" is mixed vs "+earlierL+".";
+    why = "We always judge the later day. Buckets that worsened: "+worseList+". Buckets that improved: "+betterList+".";
+    tone = "";
+  }
+  const pills = same ? "" : (
+    worse.map(x=>'<span class="chip bad" style="display:inline-block;width:auto;margin:.15rem .25rem 0 0">'+x+' worsened</span>').join("")
+    + better.map(x=>'<span class="chip ok" style="display:inline-block;width:auto;margin:.15rem .25rem 0 0">'+x+' improved</span>').join("")
+  );
+  return '<div class="banner '+tone+'"><p class="kicker2">Later day vs earlier day</p><p class="title">'+title+'</p><p class="hint">'+why+'</p><div style="margin-top:.4rem">'+pills+'</div>'
+    +'<table class="compare"><thead><tr><th>What</th><th>Earlier · '+earlierL+'</th><th>Later · '+laterL+'</th><th>'+laterL+' result</th></tr></thead><tbody>'
+    +'<tr><td>Cases not paid</td><td class="mono">'+int.format(earlier.odCases)+'</td><td class="mono">'+int.format(later.odCases)+'</td><td class="'+cls(caseDelta)+'">'+laterCopy(later.odCases,earlier.odCases,false,laterL,earlierL)+'</td></tr>'
+    +'<tr><td>Money not paid</td><td class="mono">'+cr(earlier.overdue)+'</td><td class="mono">'+cr(later.overdue)+'</td><td class="'+cls(odDelta)+'">'+laterCopy(later.overdue,earlier.overdue,true,laterL,earlierL)+'</td></tr>'
+    +'<tr><td>Cases late 91 days+</td><td class="mono">'+int.format(earlier.npa91)+'</td><td class="mono">'+int.format(later.npa91)+'</td><td class="'+cls(npaDelta)+'">'+laterCopy(later.npa91,earlier.npa91,false,laterL,earlierL)+'</td></tr>'
+    +'</tbody></table><p class="legend">Example: 11 Sep vs 16 Sep → we say if 16 Sep improved or worsened. 19 Sep vs 16 Sep → we say if 19 Sep improved or worsened.</p></div>';
+}
+let META=null, ROWS=[], FLOW={};
+function band(){ const h=(location.hash||"").replace(/^#\/?/,""); const m=h.match(/^sheet\/(m0_1|m1_2|m2_3|m3_6|m6p)$/); return m?m[1]:""; }
+function go(id){
+  const hash = id ? "#/sheet/"+id : "#";
+  try { history.replaceState(null, "", location.pathname + location.search + hash); }
+  catch (e) { try { location.hash = hash; } catch (e2) {} }
+  render();
+}
+function closeFlow(){ document.getElementById("flow-modal").hidden = true; }
+function showFlow(id, kind){
+  const pack = liveFlow()[id] || {added:[], reduced:[]};
+  const list = pack[kind] || [];
+  document.getElementById("flow-sub").textContent = kind === "reduced" ? "Green list — cases reduced vs 16 Sep" : "Red list — cases added vs 16 Sep";
+  document.getElementById("flow-title").textContent = kind === "reduced" ? "These files left this band" : "These files came into this band";
+  const rows = list.length
+    ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td>'+(r[4]||'')+'</td></tr>').join('')
+    : '<tr><td colspan="5" style="padding:2rem;text-align:center">No file list for this alert.</td></tr>';
+  document.getElementById("flow-body").innerHTML = '<div class="hint" style="padding:.6rem 1rem">'+int.format(list.length)+' files. File / case no. is the key.</div><div class="scroll" style="margin:0"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Why</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  document.getElementById("flow-modal").hidden = false;
+}
+function kpi(label,value,hint,delta){
+  return '<div class="card" style="cursor:default"><div class="label">'+label+'</div><div class="num">'+value+'</div><div class="hint">'+hint+'</div>'+(delta?'<div class="hint '+cls(delta.n)+'">'+delta.t+'</div>':'')+'</div>';
+}
+function liveFlow(){
+  if (FLOW && FLOW.oriented) return FLOW;
+  if (!META || META.asOf >= "2026-09-16") return FLOW;
+  const out = {};
+  ORDER.forEach(id => {
+    const f = FLOW[id] || {added:[], reduced:[]};
+    out[id] = { added: f.reduced || [], reduced: f.added || [] };
+  });
+  return out;
+}
+function chips(id,dc,da){
+  const f = liveFlow()[id] || {added:[], reduced:[]};
+  const out=[];
+  if(f.reduced && f.reduced.length){
+    out.push('<button type="button" class="chip ok" onclick="event.stopPropagation();showFlow(\''+id+'\',\'reduced\')">'+int.format(f.reduced.length)+' cases reduced. Click to see the files.</button>');
+  } else if(dc<0){
+    out.push('<span class="chip ok">'+int.format(Math.abs(dc))+' cases less. Good.</span>');
+  }
+  if(f.added && f.added.length){
+    out.push('<button type="button" class="chip bad" onclick="event.stopPropagation();showFlow(\''+id+'\',\'added\')">'+int.format(f.added.length)+' cases added. Click to see the files.</button>');
+  } else if(dc>0){
+    out.push('<span class="chip bad">'+int.format(dc)+' cases more. Bad.</span>');
+  }
+  if(!out.length) out.push('<span class="chip" style="color:var(--subtle)">Same as 16 Sep</span>');
+  return out.join('');
+}
+function nav(cur){
+  return '<nav class="nav"><button type="button" class="'+(!cur?'on':'')+'" onclick="go(\'\')">Summary</button>'+ORDER.map(id=>'<button type="button" class="'+(cur===id?'on':'')+'" onclick="go(\''+id+'\')">'+SHORT[id]+'</button>').join('')+'</nav>';
+}
+function render(){
+  if(!META) return;
+  const lap=META.lap, vs=META.vs16Sep, cur=band();
+  document.getElementById('sub').textContent = 'This mail '+fd(META.asOf)+' · we only compare with 16 Sep start';
+  const odDelta=lap.overdue-vs.overdue, caseDelta=lap.odCases-vs.odCases;
+  if(!cur){
+    document.getElementById('app').innerHTML =
+      boardBanner(lap, vs)
+      +nav('')+
+      '<div class="kpis">'
+        +kpi('LAP files', int.format(lap.cases), int.format(lap.current)+' paying on time', {n:lap.cases-vs.cases,t:result(lap.cases-vs.cases,false)})
+        +kpi('Pending EMI', cr(lap.overdue), int.format(lap.odCases)+' cases not paid', {n:odDelta,t:result(odDelta,true)})
+        +kpi('Late 91 days+', cr(lap.npa91Overdue), int.format(lap.npa91)+' cases', {n:lap.npa91Overdue-vs.npa91Overdue,t:result(lap.npa91Overdue-vs.npa91Overdue,true)})
+        +kpi('Paying on time', int.format(lap.current), 'current accounts', {n:-(lap.current-vs.current),t:(lap.current-vs.current)>0.5 ? int.format(lap.current-vs.current)+' more. Good.' : (lap.current-vs.current)<-0.5 ? int.format(Math.abs(lap.current-vs.current))+' less. Bad.' : 'Same as 16 Sep'})
+      +'</div><div class="bands">'+ORDER.map(id=>{
+        const b=lap.buckets.find(x=>x.id===id); const a=vs.buckets.find(x=>x.id===id)||{cases:0,overdue:0};
+        const dc=b.cases-a.cases, da=b.overdue-a.overdue;
+        return '<article class="card">'+chips(id,dc,da)+
+          '<button type="button" onclick="go(\''+id+'\')" style="display:block;width:100%;border:0;background:transparent;text-align:left;padding:0;color:inherit">'
+          +'<p style="font-family:Fraunces,Georgia,serif;font-size:1.05rem;margin:.35rem 0 0">'+LABELS[id]+'</p><p class="hint">'+HINTS[id]+'</p>'
+          +'<p class="num">'+int.format(b.cases)+'</p><p class="hint">cases in this mail</p>'
+          +'<p class="mono" style="margin-top:.5rem">'+cr(b.overdue)+'</p>'
+          +'<p class="hint">16 Sep start '+int.format(a.cases)+' · '+cr(a.overdue)+'</p>'
+          +'<p class="hint '+ (cls(da)||cls(dc)) +'">'+result(dc,false)+' '+result(da,true)+'</p>'
+          +'<p class="hint" style="color:var(--teal);margin-top:.4rem">Open full list →</p></button></article>';
+      }).join('')+'</div><footer>Click a bucket to open that person’s list.</footer>';
+    return;
+  }
+  const b=lap.buckets.find(x=>x.id===cur); const a=vs.buckets.find(x=>x.id===cur)||{cases:0,overdue:0};
+  const dc=b.cases-a.cases, da=b.overdue-a.overdue;
+  const list=ROWS.filter(r=>r[7]===cur).sort((x,y)=>y[3]-x[3]);
+  const body = list.length ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td class="mono">'+(r[5]||'—')+'</td><td class="mono">'+(r[8]||'—')+'</td></tr>').join('') : '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted)">No files in this bucket on this mail.</td></tr>';
+  document.getElementById('app').innerHTML = nav(cur)+
+    '<div class="banner '+(dc<0||da<0?'ok':'bad')+'" style="margin-top:1rem"><strong>'+LABELS[cur]+'</strong><div class="hint">This mail '+int.format(b.cases)+' cases / '+cr(b.overdue)+'. 16 Sep start '+int.format(a.cases)+' cases / '+cr(a.overdue)+'.</div><div style="margin-top:.4rem">'+chips(cur,dc,da)+'</div></div>'
+    +'<div class="kpis">'+kpi('Cases this mail', int.format(b.cases), 'this bucket', {n:dc,t:result(dc,false)})+kpi('Pending this mail', cr(b.overdue), LABELS[cur], {n:da,t:result(da,true)})+kpi('Files listed', int.format(list.length), 'worklist')+'</div>'
+    +'<div class="scroll"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Last paid</th><th>Mobile</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+}
+async function j(path){
+  const q = '?t='+Date.now()+'&n='+Math.random().toString(36).slice(2);
+  for (const base of BASES) {
+    try {
+      const url = (base ? base+'/' : '') + path + q;
+      const r = await fetch(url, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+      });
+      if (!r.ok) continue;
+      const ct = r.headers.get('content-type') || '';
+      if (ct.includes('text/html')) continue;
+      return await r.json();
+    } catch(e){}
+  }
+  return null;
+}
+async function load(){
+  if (load.busy) return;
+  load.busy = true;
+  document.getElementById('sub').textContent = 'Refreshing live dump…';
+  META = await j('live-meta.json');
+  const packs = await Promise.all(['live-m0_1.json','live-m0_1a.json','live-m0_1b.json','live-m1_2.json','live-m2_3.json','live-m3_6.json','live-m6p.json'].map(j));
+  const merged = packs.flatMap(x => Array.isArray(x) ? x : []);
+  if (merged.length) ROWS = merged;
+  const flow = await j('live-flow.json');
+  if (flow && flow.m1_2) FLOW = flow;
+  else {
+    const fp = await Promise.all(ORDER.map(id => j('live-flow-'+id+'.json')));
+    const next = {};
+    ORDER.forEach((id,i) => { if (fp[i] && (fp[i].added || fp[i].reduced)) next[id] = fp[i]; });
+    if (Object.keys(next).length) FLOW = next;
+  }
+  if(META) render(); else document.getElementById('sub').textContent='Live feed not reached';
+  load.busy = false;
+}
+window.go=go;
+window.showFlow=showFlow;
+window.closeFlow=closeFlow;
+window.addEventListener('hashchange', render);
+window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeFlow(); });
+load();
+setInterval(load, 60000);
+window.addEventListener('focus', load);
+window.addEventListener('pageshow', load);
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') load(); });
+</script>
 </body>
 </html>
