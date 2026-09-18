@@ -345,11 +345,20 @@ function dateFileBlock(id, kind, title, hint, tone){
   const more = list.length>6 ? '<button type="button" class="chip" style="width:auto;margin:.5rem .85rem" onclick="showDateFlow(\''+id+'\',\''+kind+'\')">Show all '+int.format(list.length)+'</button>' : '';
   return head+body+more+'</div>';
 }
-function dateMovement(laterL, earlierL){
-  return '<div style="margin-top:1rem"><p class="kicker2">Who came in, who left · '+laterL+' vs '+earlierL+'</p><p class="hint">Green = left the desk or overdue came down. Red = came in or overdue went up. Aged in = delay days increased. Came down = delay days fell.</p>'
+function dateMovement(laterL, earlierL, laterLap, earlierLap){
+  return '<div style="margin-top:1rem"><p class="kicker2">Who came in, who left · '+laterL+' vs '+earlierL+'</p><p class="hint">Each desk: cases on '+laterL+' and on '+earlierL+'. Then file movement — left, came in, overdue down, overdue up.</p>'
     +ORDER.map(id => {
       const f = DATEFLOW[id] || {leave:[],enter:[],up:[],down:[]};
-      return '<div class="banner" style="margin-top:.85rem"><p class="kicker2">'+SHORT[id]+'</p><p class="title" style="font-size:1.15rem">'+LABELS[id]+'</p><p class="hint">'+int.format((f.leave||[]).length)+' left · '+int.format((f.enter||[]).length)+' in · '+int.format((f.down||[]).length)+' overdue down · '+int.format((f.up||[]).length)+' overdue up</p>'
+      const b=(laterLap.buckets||[]).find(x=>x.id===id)||{cases:0,overdue:0};
+      const a=(earlierLap.buckets||[]).find(x=>x.id===id)||{cases:0,overdue:0};
+      const dc=b.cases-a.cases;
+      return '<div class="banner" style="margin-top:.85rem"><p class="kicker2">'+SHORT[id]+'</p><p class="title" style="font-size:1.15rem">'+LABELS[id]+'</p>'
+        +'<div class="kpis" style="margin-top:.7rem">'
+        +kpi(laterL, int.format(b.cases), cr(b.overdue)+' overdue', {n:dc, t: dc<0 ? int.format(Math.abs(dc))+' cases less' : dc>0 ? int.format(dc)+' cases more' : 'same'})
+        +kpi(earlierL, int.format(a.cases), cr(a.overdue)+' overdue', null)
+        +'</div>'
+        +'<p class="hint '+(dc<0?'ok':dc>0?'bad':'')+'">'+laterL+': '+int.format(b.cases)+' cases. '+earlierL+': '+int.format(a.cases)+' cases. '+(dc<0?int.format(Math.abs(dc))+' less. Improved.':dc>0?int.format(dc)+' more. Worsened.':'Same.')+'</p>'
+        +'<p class="hint">'+int.format((f.leave||[]).length)+' left · '+int.format((f.enter||[]).length)+' in · '+int.format((f.down||[]).length)+' overdue down · '+int.format((f.up||[]).length)+' overdue up</p>'
         +'<div class="bands" style="margin-top:.7rem">'
         +dateFileBlock(id,'leave','Left this desk','Paid, current, or moved to another desk','ok')
         +dateFileBlock(id,'down','Overdue came down','Same desk · amount decreased','ok')
@@ -434,7 +443,7 @@ function datesPage(){
       +kpi('Paying on time', int.format(L.current), fd(earlier.asOf)+' '+int.format(E.current), {n:-(L.current-E.current), t:(L.current-E.current)>0.5 ? int.format(L.current-E.current)+' more. Improved.' : (L.current-E.current)<-0.5 ? int.format(Math.abs(L.current-E.current))+' less. Worsened.' : fd(later.asOf)+' same as '+fd(earlier.asOf)})
     +'</div>'
     +'<div class="bands">'+desks+'</div>'
-    +dateMovement(fd(later.asOf), fd(earlier.asOf))
+    +dateMovement(fd(later.asOf), fd(earlier.asOf), L, E)
     +'<div class="scroll" style="margin-top:1rem"><table><thead><tr><th>What</th><th>Earlier · '+fd(earlier.asOf)+'</th><th>Later · '+fd(later.asOf)+'</th><th>'+fd(later.asOf)+' result</th></tr></thead><tbody>'
     +'<tr><td>Cases not paid</td><td class="mono">'+int.format(E.odCases)+'</td><td class="mono">'+int.format(L.odCases)+'</td><td class="'+cls(L.odCases-E.odCases)+'">'+laterCopy(L.odCases,E.odCases,false,fd(later.asOf),fd(earlier.asOf))+'</td></tr>'
     +'<tr><td>Money not paid</td><td class="mono">'+cr(E.overdue)+'</td><td class="mono">'+cr(L.overdue)+'</td><td class="'+cls(L.overdue-E.overdue)+'">'+laterCopy(L.overdue,E.overdue,true,fd(later.asOf),fd(earlier.asOf))+'</td></tr>'
