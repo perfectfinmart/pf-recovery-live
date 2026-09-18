@@ -281,31 +281,82 @@ function filesFromOd(od){
 function flowFromDays(laterDay, earlierDay){
   const L = filesFromOd(laterDay && laterDay.od);
   const E = filesFromOd(earlierDay && earlierDay.od);
+  const rank = {}; ORDER.forEach((id,i)=>rank[id]=i);
   const out = {};
-  ORDER.forEach(id => out[id] = {added:[], reduced:[]});
+  ORDER.forEach(id => out[id] = {added:[], reduced:[], leave:[], enter:[], up:[], down:[]});
   const keys = new Set([...L.keys(), ...E.keys()]);
   keys.forEach(k => {
     const n = L.get(k), p = E.get(k);
     const nb = n ? n[7] : null, pb = p ? p[7] : null;
-    if (p && !n && out[pb]) out[pb].reduced.push([p[0], p[1], p[2], p[3], 'Left unpaid book']);
-    else if (!p && n && out[nb]) out[nb].added.push([n[0], n[1], n[2], n[3], 'New unpaid']);
-    else if (p && n && pb !== nb) {
-      if (out[pb]) out[pb].reduced.push([p[0], p[1], n[2], p[3], 'Moved out ('+p[2]+'d → '+n[2]+'d)']);
-      if (out[nb]) out[nb].added.push([n[0], n[1], n[2], n[3], 'Moved in ('+p[2]+'d → '+n[2]+'d)']);
+    if (p && !n && out[pb]) {
+      const row = [p[0], p[1], p[2], p[3], 'Left unpaid book (paid / current)', 'leave'];
+      out[pb].reduced.push(row); out[pb].leave.push(row);
+    } else if (!p && n && out[nb]) {
+      const row = [n[0], n[1], n[2], n[3], 'New unpaid', 'enter'];
+      out[nb].added.push(row); out[nb].enter.push(row);
+    } else if (p && n && pb !== nb) {
+      const aged = (rank[nb]||0) > (rank[pb]||0);
+      if (out[pb]) {
+        const row = [p[0], p[1], n[2], p[3], aged ? ('Aged out to '+SHORT[nb]+' ('+p[2]+'d → '+n[2]+'d)') : ('Came down to '+SHORT[nb]+' ('+p[2]+'d → '+n[2]+'d)'), 'leave'];
+        out[pb].reduced.push(row); out[pb].leave.push(row);
+      }
+      if (out[nb]) {
+        const row = [n[0], n[1], n[2], n[3], aged ? ('Aged in from '+SHORT[pb]+' ('+p[2]+'d → '+n[2]+'d)') : ('Came down from '+SHORT[pb]+' ('+p[2]+'d → '+n[2]+'d)'), 'enter'];
+        out[nb].added.push(row); out[nb].enter.push(row);
+      }
+    } else if (p && n && pb === nb && out[nb]) {
+      const d = (Number(n[3])||0) - (Number(p[3])||0);
+      if (d > 0.5) {
+        const row = [n[0], n[1], n[2], n[3], 'Same desk · overdue up '+cr(d)+' ('+p[2]+'d → '+n[2]+'d)', 'up'];
+        out[nb].added.push(row); out[nb].up.push(row);
+      } else if (d < -0.5) {
+        const row = [n[0], n[1], n[2], n[3], 'Same desk · overdue down '+cr(-d)+' ('+p[2]+'d → '+n[2]+'d)', 'down'];
+        out[nb].reduced.push(row); out[nb].down.push(row);
+      }
     }
   });
   return out;
 }
 function showDateFlow(id, kind){
-  const pack = DATEFLOW[id] || {added:[], reduced:[]};
+  const pack = DATEFLOW[id] || {added:[], reduced:[], leave:[], enter:[], up:[], down:[]};
   const list = pack[kind] || [];
-  document.getElementById("flow-sub").textContent = kind === "reduced" ? "Green list — cases reduced vs the earlier date" : "Red list — cases added vs the earlier date";
-  document.getElementById("flow-title").textContent = kind === "reduced" ? "These files left this band" : "These files came into this band";
+  const titles = {
+    reduced: ['Green — reduced', 'Left the desk or overdue came down'],
+    added: ['Red — added', 'Came into the desk or overdue went up'],
+    leave: ['Left this desk', 'Paid, current, or moved to another desk'],
+    enter: ['Came into this desk', 'New unpaid, aged in, or came down from another desk'],
+    down: ['Overdue came down', 'Same desk · amount decreased'],
+    up: ['Overdue went up', 'Same desk · amount increased']
+  };
+  const t = titles[kind] || ['Files', ''];
+  document.getElementById("flow-title").textContent = t[0];
+  document.getElementById("flow-sub").textContent = t[1];
   const rows = list.length
     ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td>'+(r[4]||'')+'</td></tr>').join('')
     : '<tr><td colspan="5" style="padding:2rem;text-align:center">No file list for this alert.</td></tr>';
   document.getElementById("flow-body").innerHTML = '<div class="hint" style="padding:.6rem 1rem">'+int.format(list.length)+' files. File / case no. is the key.</div><div class="scroll" style="margin:0"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Why</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   document.getElementById("flow-modal").hidden = false;
+}
+function dateFileBlock(id, kind, title, hint, tone){
+  const list = (DATEFLOW[id] && DATEFLOW[id][kind]) || [];
+  const head = '<div class="card" style="padding:0;overflow:hidden;border:1px solid '+(tone==='ok'?'#cfe3d6':'#ead3d3')+'"><div style="padding:.65rem .85rem;border-bottom:1px solid var(--line)"><button type="button" class="chip '+(tone==='ok'?'ok':'bad')+'" style="width:auto" onclick="showDateFlow(\''+id+'\',\''+kind+'\')">'+title+' · '+int.format(list.length)+'</button><p class="hint" style="margin:.25rem 0 0">'+hint+'</p></div>';
+  const body = list.slice(0,6).map((r,i)=>'<div style="padding:.5rem .85rem;border-top:1px solid var(--line)"><p class="mono" style="font-size:12px">'+(i+1)+'. '+r[0]+' · '+cr(r[3])+'</p><p class="hint">'+(r[1]||'—')+'</p><p class="hint">'+r[2]+'d · '+(r[4]||'')+'</p></div>').join('')
+    || '<p class="hint" style="padding:.75rem .85rem">None</p>';
+  const more = list.length>6 ? '<button type="button" class="chip" style="width:auto;margin:.5rem .85rem" onclick="showDateFlow(\''+id+'\',\''+kind+'\')">Show all '+int.format(list.length)+'</button>' : '';
+  return head+body+more+'</div>';
+}
+function dateMovement(laterL, earlierL){
+  return '<div style="margin-top:1rem"><p class="kicker2">Who came in, who left · '+laterL+' vs '+earlierL+'</p><p class="hint">Green = left the desk or overdue came down. Red = came in or overdue went up. Aged in = delay days increased. Came down = delay days fell.</p>'
+    +ORDER.map(id => {
+      const f = DATEFLOW[id] || {leave:[],enter:[],up:[],down:[]};
+      return '<div class="banner" style="margin-top:.85rem"><p class="kicker2">'+SHORT[id]+'</p><p class="title" style="font-size:1.15rem">'+LABELS[id]+'</p><p class="hint">'+int.format((f.leave||[]).length)+' left · '+int.format((f.enter||[]).length)+' in · '+int.format((f.down||[]).length)+' overdue down · '+int.format((f.up||[]).length)+' overdue up</p>'
+        +'<div class="bands" style="margin-top:.7rem">'
+        +dateFileBlock(id,'leave','Left this desk','Paid, current, or moved to another desk','ok')
+        +dateFileBlock(id,'down','Overdue came down','Same desk · amount decreased','ok')
+        +dateFileBlock(id,'enter','Came into this desk','New unpaid, aged in, or came down from another desk','bad')
+        +dateFileBlock(id,'up','Overdue went up','Same desk · amount increased','bad')
+        +'</div></div>';
+    }).join('')+'</div>';
 }
 function dateChips(id, dc){
   const f = DATEFLOW[id] || {added:[], reduced:[]};
@@ -383,6 +434,7 @@ function datesPage(){
       +kpi('Paying on time', int.format(L.current), fd(earlier.asOf)+' '+int.format(E.current), {n:-(L.current-E.current), t:(L.current-E.current)>0.5 ? int.format(L.current-E.current)+' more. Improved.' : (L.current-E.current)<-0.5 ? int.format(Math.abs(L.current-E.current))+' less. Worsened.' : fd(later.asOf)+' same as '+fd(earlier.asOf)})
     +'</div>'
     +'<div class="bands">'+desks+'</div>'
+    +dateMovement(fd(later.asOf), fd(earlier.asOf))
     +'<div class="scroll" style="margin-top:1rem"><table><thead><tr><th>What</th><th>Earlier · '+fd(earlier.asOf)+'</th><th>Later · '+fd(later.asOf)+'</th><th>'+fd(later.asOf)+' result</th></tr></thead><tbody>'
     +'<tr><td>Cases not paid</td><td class="mono">'+int.format(E.odCases)+'</td><td class="mono">'+int.format(L.odCases)+'</td><td class="'+cls(L.odCases-E.odCases)+'">'+laterCopy(L.odCases,E.odCases,false,fd(later.asOf),fd(earlier.asOf))+'</td></tr>'
     +'<tr><td>Money not paid</td><td class="mono">'+cr(E.overdue)+'</td><td class="mono">'+cr(L.overdue)+'</td><td class="'+cls(L.overdue-E.overdue)+'">'+laterCopy(L.overdue,E.overdue,true,fd(later.asOf),fd(earlier.asOf))+'</td></tr>'
