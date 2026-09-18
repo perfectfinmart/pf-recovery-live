@@ -170,10 +170,10 @@ function boardBanner(lap, vs){
     +'<tr><td>Cases late 91 days+</td><td class="mono">'+int.format(earlier.npa91)+'</td><td class="mono">'+int.format(later.npa91)+'</td><td class="'+cls(npaDelta)+'">'+laterCopy(later.npa91,earlier.npa91,false,laterL,earlierL)+'</td></tr>'
     +'</tbody></table><p class="legend">We always judge the later day against 16 Sep (the start line). Green = improved. Red = worsened.</p></div>';
 }
-let META=null, ROWS=[], FLOW={}, HUDDLE=null;
-function band(){ const h=(location.hash||"").replace(/^#\/?/,""); if(h==="huddle") return "huddle"; const m=h.match(/^sheet\/(m0_1|m1_2|m2_3|m3_6|m6p)$/); return m?m[1]:""; }
+let META=null, ROWS=[], FLOW={}, HUDDLE=null, HIST=null, PICK={later:"", earlier:"2026-09-16"};
+function band(){ const h=(location.hash||"").replace(/^#\/?/,""); if(h==="huddle") return "huddle"; if(h==="dates") return "dates"; const m=h.match(/^sheet\/(m0_1|m1_2|m2_3|m3_6|m6p)$/); return m?m[1]:""; }
 function go(id){
-  const hash = !id ? "#" : id==="huddle" ? "#/huddle" : "#/sheet/"+id;
+  const hash = !id ? "#" : id==="huddle" ? "#/huddle" : id==="dates" ? "#/dates" : "#/sheet/"+id;
   try { history.replaceState(null, "", location.pathname + location.search + hash); }
   catch (e) { try { location.hash = hash; } catch (e2) {} }
   render();
@@ -222,7 +222,80 @@ function chips(id,dc,da){
 function nav(cur){
   return '<nav class="nav"><button type="button" class="'+(!cur?'on':'')+'" onclick="go(\'\')">Summary</button>'
     +'<button type="button" class="'+(cur==='huddle'?'on':'')+'" onclick="go(\'huddle\')">6 pm</button>'
+    +'<button type="button" class="'+(cur==='dates'?'on':'')+'" onclick="go(\'dates\')">Dates</button>'
     +ORDER.map(id=>'<button type="button" class="'+(cur===id?'on':'')+'" onclick="go(\''+id+'\')">'+SHORT[id]+'</button>').join('')+'</nav>';
+}
+function histDays(){
+  const list = ((HIST && HIST.days) || []).map(d => ({asOf:d.asOf, lap:d.lap}));
+  if (META && META.asOf && !list.some(d => d.asOf === META.asOf)) list.push({asOf: META.asOf, lap: META.lap});
+  list.sort((a,b)=>a.asOf.localeCompare(b.asOf));
+  return list;
+}
+function snapDay(iso){
+  const days = histDays();
+  const hit = days.filter(d => d.asOf <= iso).pop();
+  return hit || days[days.length-1] || days[0];
+}
+function addIso(iso, n){
+  const d = new Date(iso+"T00:00:00+05:30");
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+function monthIso(iso){
+  const d = new Date(iso+"T00:00:00+05:30");
+  d.setMonth(d.getMonth()-1);
+  return d.toISOString().slice(0,10);
+}
+function pickLater(iso){
+  const hit = snapDay(iso);
+  if (hit) PICK.later = hit.asOf;
+  render();
+}
+function pickEarlier(iso){
+  const hit = snapDay(iso);
+  if (hit) PICK.earlier = hit.asOf;
+  if (PICK.earlier === (PICK.later || (META && META.asOf))) {
+    const days = histDays().filter(d => d.asOf < PICK.later);
+    if (days.length) PICK.earlier = days[days.length-1].asOf;
+  }
+  render();
+}
+function pickWeek(){ if (META) pickEarlier(addIso(META.asOf, -7)); }
+function pickMonth(){ if (META) pickEarlier(monthIso(META.asOf)); }
+function pickStart(){ PICK.earlier = "2026-09-16"; render(); }
+function datesPage(){
+  const days = histDays();
+  const laterAs = PICK.later || (META && META.asOf) || "";
+  const earlierAs = PICK.earlier || "2026-09-16";
+  const later = days.find(d => d.asOf === laterAs) || days[days.length-1];
+  const earlier = days.find(d => d.asOf === earlierAs) || days[0];
+  if (!later || !earlier) return '<p class="hint">No dumps in the week store yet.</p>';
+  const L = later.lap, E = earlier.lap;
+  const min = days[0].asOf, max = days[days.length-1].asOf;
+  const chips = days.map(d => '<span class="chip" style="width:auto;display:inline-block;margin:.15rem .25rem 0 0'+(d.asOf===later.asOf||d.asOf===earlier.asOf?';background:var(--ink);color:var(--paper)':'')+'">'+fd(d.asOf)+' · '+int.format(d.lap.odCases)+'</span>').join('');
+  const rows = ORDER.map(id => {
+    const b = (L.buckets||[]).find(x=>x.id===id) || {cases:0,overdue:0};
+    const a = (E.buckets||[]).find(x=>x.id===id) || {cases:0,overdue:0};
+    return '<tr><td>'+LABELS[id]+'</td><td class="mono">'+int.format(a.cases)+' / '+cr(a.overdue)+'</td><td class="mono">'+int.format(b.cases)+' / '+cr(b.overdue)+'</td><td class="'+cls(b.cases-a.cases)+'">'+laterCopy(b.cases,a.cases,false,fd(later.asOf),fd(earlier.asOf))+'</td></tr>';
+  }).join('');
+  return '<div class="banner" style="margin-top:1rem"><p class="kicker2">Pick dates</p><p class="title">'+fd(later.asOf)+' vs '+fd(earlier.asOf)+'</p><p class="hint">Choose a calendar date. We use the dump on that day, or the nearest dump we already keep (about 7 days plus 16 Sep start).</p>'
+    +'<div style="display:grid;gap:.75rem;grid-template-columns:1fr 1fr;margin-top:.85rem">'
+    +'<label class="hint">Later day<br><input type="date" value="'+later.asOf+'" min="'+min+'" max="'+max+'" onchange="pickLater(this.value)" style="margin-top:.35rem;width:100%;min-height:44px;padding:.4rem .6rem;border:1px solid var(--line);border-radius:.5rem;background:var(--paper);color:var(--ink)"></label>'
+    +'<label class="hint">Compare with<br><input type="date" value="'+earlier.asOf+'" min="'+min+'" max="'+max+'" onchange="pickEarlier(this.value)" style="margin-top:.35rem;width:100%;min-height:44px;padding:.4rem .6rem;border:1px solid var(--line);border-radius:.5rem;background:var(--paper);color:var(--ink)"></label>'
+    +'</div>'
+    +'<div style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.4rem">'
+    +'<button type="button" class="chip" style="width:auto" onclick="pickWeek()">Same day last week</button>'
+    +'<button type="button" class="chip" style="width:auto" onclick="pickMonth()">Same day last month</button>'
+    +'<button type="button" class="chip" style="width:auto" onclick="pickStart()">vs 16 Sep start</button>'
+    +'</div>'
+    +'<div style="margin-top:.75rem">'+chips+'</div></div>'
+    +'<div class="scroll" style="margin-top:1rem"><table><thead><tr><th>What</th><th>Earlier · '+fd(earlier.asOf)+'</th><th>Later · '+fd(later.asOf)+'</th><th>'+fd(later.asOf)+' result</th></tr></thead><tbody>'
+    +'<tr><td>Cases not paid</td><td class="mono">'+int.format(E.odCases)+'</td><td class="mono">'+int.format(L.odCases)+'</td><td class="'+cls(L.odCases-E.odCases)+'">'+laterCopy(L.odCases,E.odCases,false,fd(later.asOf),fd(earlier.asOf))+'</td></tr>'
+    +'<tr><td>Money not paid</td><td class="mono">'+cr(E.overdue)+'</td><td class="mono">'+cr(L.overdue)+'</td><td class="'+cls(L.overdue-E.overdue)+'">'+laterCopy(L.overdue,E.overdue,true,fd(later.asOf),fd(earlier.asOf))+'</td></tr>'
+    +'<tr><td>Cases late 91 days+</td><td class="mono">'+int.format(E.npa91)+'</td><td class="mono">'+int.format(L.npa91)+'</td><td class="'+cls(L.npa91-E.npa91)+'">'+laterCopy(L.npa91,E.npa91,false,fd(later.asOf),fd(earlier.asOf))+'</td></tr>'
+    +rows
+    +'</tbody></table></div>'
+    +'<footer>We keep about 7 daily dumps plus the 16 Sep start. Pick a date even if that exact day is not in the store — we use the nearest dump on or before it.</footer>';
 }
 function gistBox(){
   const ins = META.insights;
@@ -241,6 +314,11 @@ function render(){
   document.getElementById('h1').textContent = fd(META.asOf);
   document.getElementById('sub').textContent = int.format(lap.odCases)+' overdue · compared with 16 Sep start';
   const cur=band();
+  if(cur==="dates"){
+    document.getElementById('sub').textContent = 'Pick a date · week store';
+    document.getElementById('app').innerHTML = nav('dates') + datesPage();
+    return;
+  }
   if(cur==="huddle"){
     const pack = HUDDLE || META.huddle || { named: [] };
     const named = pack.named || [];
@@ -319,12 +397,18 @@ async function load(){
     if (Object.keys(next).length) FLOW = next;
   }
   HUDDLE = await j('live-huddle.json') || (META && META.huddle) || HUDDLE;
+  HIST = await j('live-history.json') || HIST;
   if(META) render(); else document.getElementById('sub').textContent='Live feed not reached';
   load.busy = false;
 }
 window.go=go;
 window.showFlow=showFlow;
 window.closeFlow=closeFlow;
+window.pickLater=pickLater;
+window.pickEarlier=pickEarlier;
+window.pickWeek=pickWeek;
+window.pickMonth=pickMonth;
+window.pickStart=pickStart;
 window.addEventListener('hashchange', render);
 window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeFlow(); });
 load();
