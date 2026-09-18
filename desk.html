@@ -263,6 +263,15 @@ function pickEarlier(iso){
 function pickWeek(){ if (META) pickEarlier(addIso(META.asOf, -7)); }
 function pickMonth(){ if (META) pickEarlier(monthIso(META.asOf)); }
 function pickStart(){ PICK.earlier = "2026-09-16"; render(); }
+function pickTodayYest(){
+  const days = histDays();
+  if (!days.length) return;
+  const later = days[days.length-1];
+  const yest = days.filter(d => d.asOf < later.asOf).pop();
+  PICK.later = later.asOf;
+  if (yest) PICK.earlier = yest.asOf;
+  render();
+}
 let DATEFLOW = {};
 function filesFromOd(od){
   const map = new Map();
@@ -361,6 +370,7 @@ function datesPage(){
     +'<label class="hint">Compare with<br><input type="date" value="'+earlier.asOf+'" min="'+min+'" max="'+max+'" onchange="pickEarlier(this.value)" style="margin-top:.35rem;width:100%;min-height:44px;padding:.4rem .6rem;border:1px solid var(--line);border-radius:.5rem;background:var(--paper);color:var(--ink)"></label>'
     +'</div>'
     +'<div style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.4rem">'
+    +'<button type="button" class="chip" style="width:auto" onclick="pickTodayYest()">Today vs yesterday</button>'
     +'<button type="button" class="chip" style="width:auto" onclick="pickWeek()">Same day last week</button>'
     +'<button type="button" class="chip" style="width:auto" onclick="pickMonth()">Same day last month</button>'
     +'<button type="button" class="chip" style="width:auto" onclick="pickStart()">vs 16 Sep start</button>'
@@ -493,6 +503,7 @@ window.pickEarlier=pickEarlier;
 window.pickWeek=pickWeek;
 window.pickMonth=pickMonth;
 window.pickStart=pickStart;
+window.pickTodayYest=pickTodayYest;
 window.showDateFlow=showDateFlow;
 window.addEventListener('hashchange', render);
 window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeFlow(); });
