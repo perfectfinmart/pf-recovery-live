@@ -226,8 +226,8 @@ function nav(cur){
     +ORDER.map(id=>'<button type="button" class="'+(cur===id?'on':'')+'" onclick="go(\''+id+'\')">'+SHORT[id]+'</button>').join('')+'</nav>';
 }
 function histDays(){
-  const list = ((HIST && HIST.days) || []).map(d => ({asOf:d.asOf, lap:d.lap}));
-  if (META && META.asOf && !list.some(d => d.asOf === META.asOf)) list.push({asOf: META.asOf, lap: META.lap});
+  const list = ((HIST && HIST.days) || []).map(d => ({asOf:d.asOf, lap:d.lap, od:d.od||[]}));
+  if (META && META.asOf && !list.some(d => d.asOf === META.asOf)) list.push({asOf: META.asOf, lap: META.lap, od:[]});
   list.sort((a,b)=>a.asOf.localeCompare(b.asOf));
   return list;
 }
@@ -263,6 +263,57 @@ function pickEarlier(iso){
 function pickWeek(){ if (META) pickEarlier(addIso(META.asOf, -7)); }
 function pickMonth(){ if (META) pickEarlier(monthIso(META.asOf)); }
 function pickStart(){ PICK.earlier = "2026-09-16"; render(); }
+let DATEFLOW = {};
+function filesFromOd(od){
+  const map = new Map();
+  (od||[]).forEach(r => { if (r && r[0]) map.set(String(r[0]), r); });
+  return map;
+}
+function flowFromDays(laterDay, earlierDay){
+  const L = filesFromOd(laterDay && laterDay.od);
+  const E = filesFromOd(earlierDay && earlierDay.od);
+  const out = {};
+  ORDER.forEach(id => out[id] = {added:[], reduced:[]});
+  const keys = new Set([...L.keys(), ...E.keys()]);
+  keys.forEach(k => {
+    const n = L.get(k), p = E.get(k);
+    const nb = n ? n[7] : null, pb = p ? p[7] : null;
+    if (p && !n && out[pb]) out[pb].reduced.push([p[0], p[1], p[2], p[3], 'Left unpaid book']);
+    else if (!p && n && out[nb]) out[nb].added.push([n[0], n[1], n[2], n[3], 'New unpaid']);
+    else if (p && n && pb !== nb) {
+      if (out[pb]) out[pb].reduced.push([p[0], p[1], n[2], p[3], 'Moved out ('+p[2]+'d → '+n[2]+'d)']);
+      if (out[nb]) out[nb].added.push([n[0], n[1], n[2], n[3], 'Moved in ('+p[2]+'d → '+n[2]+'d)']);
+    }
+  });
+  return out;
+}
+function showDateFlow(id, kind){
+  const pack = DATEFLOW[id] || {added:[], reduced:[]};
+  const list = pack[kind] || [];
+  document.getElementById("flow-sub").textContent = kind === "reduced" ? "Green list — cases reduced vs the earlier date" : "Red list — cases added vs the earlier date";
+  document.getElementById("flow-title").textContent = kind === "reduced" ? "These files left this band" : "These files came into this band";
+  const rows = list.length
+    ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td>'+(r[4]||'')+'</td></tr>').join('')
+    : '<tr><td colspan="5" style="padding:2rem;text-align:center">No file list for this alert.</td></tr>';
+  document.getElementById("flow-body").innerHTML = '<div class="hint" style="padding:.6rem 1rem">'+int.format(list.length)+' files. File / case no. is the key.</div><div class="scroll" style="margin:0"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Why</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  document.getElementById("flow-modal").hidden = false;
+}
+function dateChips(id, dc){
+  const f = DATEFLOW[id] || {added:[], reduced:[]};
+  const out=[];
+  if(f.reduced && f.reduced.length){
+    out.push('<button type="button" class="chip ok" onclick="event.stopPropagation();showDateFlow(\''+id+'\',\'reduced\')">'+int.format(f.reduced.length)+' cases reduced. Click to see the files.</button>');
+  } else if(dc<0){
+    out.push('<span class="chip ok">'+int.format(Math.abs(dc))+' cases less. Good.</span>');
+  }
+  if(f.added && f.added.length){
+    out.push('<button type="button" class="chip bad" onclick="event.stopPropagation();showDateFlow(\''+id+'\',\'added\')">'+int.format(f.added.length)+' cases added. Click to see the files.</button>');
+  } else if(dc>0){
+    out.push('<span class="chip bad">'+int.format(dc)+' cases more. Bad.</span>');
+  }
+  if(!out.length) out.push('<span class="chip" style="color:var(--subtle)">Same as earlier date</span>');
+  return out.join('');
+}
 function datesPage(){
   const days = histDays();
   const laterAs = PICK.later || (META && META.asOf) || "";
@@ -278,7 +329,33 @@ function datesPage(){
     const a = (E.buckets||[]).find(x=>x.id===id) || {cases:0,overdue:0};
     return '<tr><td>'+LABELS[id]+'</td><td class="mono">'+int.format(a.cases)+' / '+cr(a.overdue)+'</td><td class="mono">'+int.format(b.cases)+' / '+cr(b.overdue)+'</td><td class="'+cls(b.cases-a.cases)+'">'+laterCopy(b.cases,a.cases,false,fd(later.asOf),fd(earlier.asOf))+'</td></tr>';
   }).join('');
-  return '<div class="banner" style="margin-top:1rem"><p class="kicker2">Pick dates</p><p class="title">'+fd(later.asOf)+' vs '+fd(earlier.asOf)+'</p><p class="hint">Choose a calendar date. We use the dump on that day, or the nearest dump we already keep (about 7 days plus 16 Sep start).</p>'
+  DATEFLOW = flowFromDays(later, earlier);
+  const worse=[], better=[];
+  ORDER.forEach(id => {
+    const b=(L.buckets||[]).find(x=>x.id===id)||{cases:0,overdue:0};
+    const a=(E.buckets||[]).find(x=>x.id===id)||{cases:0,overdue:0};
+    if (b.cases-a.cases>0 || b.overdue-a.overdue>0) worse.push(SHORT[id]);
+    else if (b.cases-a.cases<0 || b.overdue-a.overdue<0) better.push(SHORT[id]);
+  });
+  const caseD = L.odCases-E.odCases, odD = L.overdue-E.overdue;
+  const head = (caseD<0 || odD<0) && !(caseD>0 && odD>0)
+    ? fd(later.asOf)+' improved vs '+fd(earlier.asOf)+'.'
+    : (caseD>0 || odD>0)
+      ? fd(later.asOf)+' worsened vs '+fd(earlier.asOf)+'.'
+      : fd(later.asOf)+' is the same as '+fd(earlier.asOf)+'.';
+  const why = fd(later.asOf)+' is the later day. Compared with '+fd(earlier.asOf)+': worsened in '+(worse.join(', ')||'none')+'. Improved in '+(better.join(', ')||'none')+'.';
+  const desks = ORDER.map(id => {
+    const b=(L.buckets||[]).find(x=>x.id===id)||{cases:0,overdue:0};
+    const a=(E.buckets||[]).find(x=>x.id===id)||{cases:0,overdue:0};
+    const dc=b.cases-a.cases, da=b.overdue-a.overdue;
+    return '<article class="card">'+dateChips(id,dc)+
+      '<p style="font-family:Fraunces,Georgia,serif;font-size:1.05rem;margin:.35rem 0 0">'+LABELS[id]+'</p>'
+      +'<p class="num">'+int.format(b.cases)+'</p><p class="hint">cases on '+fd(later.asOf)+'</p>'
+      +'<p class="mono" style="margin-top:.5rem">'+cr(b.overdue)+'</p>'
+      +'<p class="hint">'+fd(earlier.asOf)+' '+int.format(a.cases)+' · '+cr(a.overdue)+'</p>'
+      +'<p class="hint '+(cls(da)||cls(dc))+'">'+laterCopy(b.cases,a.cases,false,fd(later.asOf),fd(earlier.asOf))+' · '+laterCopy(b.overdue,a.overdue,true,fd(later.asOf),fd(earlier.asOf))+'</p></article>';
+  }).join('');
+  return '<div class="banner '+(caseD<0||odD<0?'ok':(caseD>0||odD>0?'bad':''))+'" style="margin-top:1rem"><p class="kicker2">Dates · complete analysis</p><p class="title">'+head+'</p><p class="hint">'+why+'</p>'
     +'<div style="display:grid;gap:.75rem;grid-template-columns:1fr 1fr;margin-top:.85rem">'
     +'<label class="hint">Later day<br><input type="date" value="'+later.asOf+'" min="'+min+'" max="'+max+'" onchange="pickLater(this.value)" style="margin-top:.35rem;width:100%;min-height:44px;padding:.4rem .6rem;border:1px solid var(--line);border-radius:.5rem;background:var(--paper);color:var(--ink)"></label>'
     +'<label class="hint">Compare with<br><input type="date" value="'+earlier.asOf+'" min="'+min+'" max="'+max+'" onchange="pickEarlier(this.value)" style="margin-top:.35rem;width:100%;min-height:44px;padding:.4rem .6rem;border:1px solid var(--line);border-radius:.5rem;background:var(--paper);color:var(--ink)"></label>'
@@ -289,6 +366,13 @@ function datesPage(){
     +'<button type="button" class="chip" style="width:auto" onclick="pickStart()">vs 16 Sep start</button>'
     +'</div>'
     +'<div style="margin-top:.75rem">'+chips+'</div></div>'
+    +'<div class="kpis">'
+      +kpi('Cases not paid', int.format(L.odCases), fd(earlier.asOf)+' '+int.format(E.odCases), {n:caseD,t:laterCopy(L.odCases,E.odCases,false,fd(later.asOf),fd(earlier.asOf))})
+      +kpi('Money not paid', cr(L.overdue), fd(earlier.asOf)+' '+cr(E.overdue), {n:odD,t:laterCopy(L.overdue,E.overdue,true,fd(later.asOf),fd(earlier.asOf))})
+      +kpi('Late 91 days+', int.format(L.npa91), fd(earlier.asOf)+' '+int.format(E.npa91), {n:L.npa91-E.npa91,t:laterCopy(L.npa91,E.npa91,false,fd(later.asOf),fd(earlier.asOf))})
+      +kpi('Paying on time', int.format(L.current), fd(earlier.asOf)+' '+int.format(E.current), {n:-(L.current-E.current), t:(L.current-E.current)>0.5 ? int.format(L.current-E.current)+' more. Improved.' : (L.current-E.current)<-0.5 ? int.format(Math.abs(L.current-E.current))+' less. Worsened.' : fd(later.asOf)+' same as '+fd(earlier.asOf)})
+    +'</div>'
+    +'<div class="bands">'+desks+'</div>'
     +'<div class="scroll" style="margin-top:1rem"><table><thead><tr><th>What</th><th>Earlier · '+fd(earlier.asOf)+'</th><th>Later · '+fd(later.asOf)+'</th><th>'+fd(later.asOf)+' result</th></tr></thead><tbody>'
     +'<tr><td>Cases not paid</td><td class="mono">'+int.format(E.odCases)+'</td><td class="mono">'+int.format(L.odCases)+'</td><td class="'+cls(L.odCases-E.odCases)+'">'+laterCopy(L.odCases,E.odCases,false,fd(later.asOf),fd(earlier.asOf))+'</td></tr>'
     +'<tr><td>Money not paid</td><td class="mono">'+cr(E.overdue)+'</td><td class="mono">'+cr(L.overdue)+'</td><td class="'+cls(L.overdue-E.overdue)+'">'+laterCopy(L.overdue,E.overdue,true,fd(later.asOf),fd(earlier.asOf))+'</td></tr>'
@@ -409,6 +493,7 @@ window.pickEarlier=pickEarlier;
 window.pickWeek=pickWeek;
 window.pickMonth=pickMonth;
 window.pickStart=pickStart;
+window.showDateFlow=showDateFlow;
 window.addEventListener('hashchange', render);
 window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeFlow(); });
 load();
