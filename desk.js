@@ -4,11 +4,31 @@ const BASES = [
   ""
 ];
 const ORDER = ["m0_1","m1_2","m2_3","m3_6","m6p"];
-const LABELS = { m0_1:"0–1 month", m1_2:"1–2 months", m2_3:"2–3 months", m3_6:"3–6 months", m6p:">6 months" };
-const SHORT = { m0_1:"0–1 m", m1_2:"1–2 m", m2_3:"2–3 m", m3_6:"3–6 m", m6p:">6 m" };
-const HINTS = { m0_1:"0–30 days", m1_2:"31–60 days", m2_3:"61–90 days", m3_6:"91–180 days", m6p:"181+ days" };
+const LABELS = { m0_1:"1 EMI overdue", m1_2:"1–2 months", m2_3:"2–3 months", m3_6:"3–6 months", m6p:">6 months" };
+const SHORT = { m0_1:"1 EMI", m1_2:"1–2 m", m2_3:"2–3 m", m3_6:"3–6 m", m6p:">6 m" };
+const HINTS = { m0_1:"one EMI pending", m1_2:"31–60 days", m2_3:"61–90 days", m3_6:"91–180 days", m6p:"181+ days" };
 const int = new Intl.NumberFormat("en-IN");
 const inr = new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0});
+
+const RBI = { m0_1:"SMA-0", m1_2:"SMA-1", m2_3:"SMA-2", m3_6:"NPA", m6p:"NPA" };
+const AIM = { m0_1:"≥85% a month", m1_2:"≥50% a month", m2_3:"≥30% a month", m3_6:"≥20% a month", m6p:"≥10% a month" };
+function pf(n){ if(!isFinite(n)) return "—"; return (n<-0.05?"−":"")+Math.abs(n).toFixed(1)+"%"; }
+function bookPos(lap){
+  if (lap && lap.pos > 0) return lap.pos;
+  const a = ((META && META.book && META.book.assets) || []).find(x => x.asset === "LAP");
+  return a && a.pos ? a.pos : 0;
+}
+function ratesHtml(b, a, lap){
+  const defC = lap.cases ? (b.cases / lap.cases) * 100 : 0;
+  const pos = bookPos(lap);
+  const defA = pos ? (b.overdue / pos) * 100 : 0;
+  const par = pos && b.pos ? (b.pos / pos) * 100 : 0;
+  const rec = a && a.overdue ? ((a.overdue - b.overdue) / a.overdue) * 100 : 0;
+  return '<p class="hint">Default '+pf(defC)+' of book · '+int.format(b.cases)+' / '+int.format(lap.cases)+' files · '+(RBI[b.id]||'')+'</p>'
+    +'<p class="hint">Overdue '+pf(defA)+' of POS'+(par?' · PAR '+pf(par):'')+'</p>'
+    +'<p class="hint '+(rec>=0?'ok':'bad')+'">Recovery '+pf(rec)+' vs 16 Sep · aim '+(AIM[b.id]||'')+'</p>';
+}
+
 function cr(n){ const a=Math.abs(n); if(a>=1e7) return (n<0?"−":"")+"₹"+(a/1e7).toFixed(2)+" Cr"; if(a>=1e5) return (n<0?"−":"")+"₹"+(a/1e5).toFixed(2)+" L"; return inr.format(Math.round(n)); }
 function fd(v){ if(!v) return "—"; const [y,m,d]=v.split("-"); return d+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(m)-1]+" "+y; }
 function cls(n){ return n<-0.5?"ok":n>0.5?"bad":""; }
@@ -153,6 +173,7 @@ function render(){
           +'<p style="font-family:Fraunces,Georgia,serif;font-size:1.05rem;margin:.35rem 0 0">'+LABELS[id]+'</p><p class="hint">'+HINTS[id]+'</p>'
           +'<p class="num">'+int.format(b.cases)+'</p><p class="hint">cases in this mail</p>'
           +'<p class="mono" style="margin-top:.5rem">'+cr(b.overdue)+'</p>'
+          +ratesHtml(b,a,lap)
           +'<p class="hint">16 Sep start '+int.format(a.cases)+' · '+cr(a.overdue)+'</p>'
           +'<p class="hint '+ (cls(da)||cls(dc)) +'">'+result(dc,false)+' '+result(da,true)+'</p>'
           +'<p class="hint" style="color:var(--teal);margin-top:.4rem">Open full list →</p></button></article>';
@@ -165,7 +186,7 @@ function render(){
   const body = list.length ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td class="mono">'+(r[5]||'—')+'</td><td class="mono">'+(r[8]||'—')+'</td></tr>').join('') : '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted)">No files in this bucket on this mail.</td></tr>';
   document.getElementById('app').innerHTML = nav(cur)+
     '<div class="banner '+(dc<0||da<0?'ok':'bad')+'" style="margin-top:1rem"><strong>'+LABELS[cur]+'</strong><div class="hint">This mail '+int.format(b.cases)+' cases / '+cr(b.overdue)+'. 16 Sep start '+int.format(a.cases)+' cases / '+cr(a.overdue)+'.</div><div style="margin-top:.4rem">'+chips(cur,dc,da)+'</div></div>'
-    +'<div class="kpis">'+kpi('Cases this mail', int.format(b.cases), 'this bucket', {n:dc,t:result(dc,false)})+kpi('Pending this mail', cr(b.overdue), LABELS[cur], {n:da,t:result(da,true)})+kpi('Files listed', int.format(list.length), 'worklist')+'</div>'
+    +'<div class="kpis">'+kpi('Cases this mail', int.format(b.cases), 'this bucket', {n:dc,t:result(dc,false)})+kpi('Pending this mail', cr(b.overdue), LABELS[cur], {n:da,t:result(da,true)})+kpi('Default rate', (function(){ const defC = lap.cases ? (b.cases/lap.cases)*100 : 0; return pf(defC); })(), int.format(b.cases)+' / '+int.format(lap.cases)+' LAP files')+kpi('Recovery vs 16 Sep', (function(){ const rec = a.overdue ? ((a.overdue-b.overdue)/a.overdue)*100 : 0; return pf(rec); })(), 'overdue down ÷ 16 Sep overdue of this desk · '+(RBI[cur]||''), {n: (a.overdue-b.overdue)*-1, t: AIM[cur]})+'</div>'
     +'<div class="scroll"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Last paid</th><th>Mobile</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 async function j(path){
