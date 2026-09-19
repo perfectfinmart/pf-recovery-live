@@ -51,7 +51,7 @@ function dwellMark(caseNo, bucket, lateBy){
   }
   const days = saw && asOf ? Math.min(fromDpd, isoDays(firstSame, asOf)) : fromDpd;
   const just = saw && days<=2;
-  return '<span class="dwell">• '+days+'d in this desk'+(just?' · just in':'')+'</span>';
+  return '<span class="dwell'+(just?' new':'')+'" title="'+days+' day'+(days===1?'':'s')+' on this desk. Counter restarts the day this file changes bucket.">• '+days+'d</span>';
 }
 function nm(r){ return dwellMark(r[0], r[7], r[2])+' '+(r[1]||'—'); }
 function nmCase(caseNo, name, bucket, lateBy){

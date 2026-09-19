@@ -52,7 +52,8 @@
     th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
     td.r, th.r { text-align:right; font-variant-numeric:tabular-nums; }
     .mono { font-family:"IBM Plex Mono",monospace; }
-    .dwell { color:var(--muted); font-size:12px; margin-right:.35rem; white-space:nowrap; }
+    .dwell { color:var(--teal); font-size:12px; margin-right:.4rem; white-space:nowrap; font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; }
+    .dwell.new { color:#8a6a2a; }
     .scroll { overflow-x:auto; margin-top:1rem; background:var(--paper); border-radius:.9rem; -webkit-overflow-scrolling:touch; }
     footer { color:var(--subtle); font-size:12px; margin:1.5rem 0; padding-bottom: env(safe-area-inset-bottom); }
     @media (max-width:639px){
@@ -147,7 +148,7 @@ function dwellMark(caseNo, bucket, lateBy){
   }
   const days = saw && asOf ? Math.min(fromDpd, isoDays(firstSame, asOf)) : fromDpd;
   const just = saw && days<=2;
-  return '<span class="dwell">• '+days+'d in this desk'+(just?' · just in':'')+'</span>';
+  return '<span class="dwell'+(just?' new':'')+'" title="'+days+' day'+(days===1?'':'s')+' on this desk. Counter restarts the day this file changes bucket.">• '+days+'d</span>';
 }
 function nm(r){ return dwellMark(r[0], r[7], r[2])+' '+(r[1]||'—'); }
 function nmCase(caseNo, name, bucket, lateBy){
