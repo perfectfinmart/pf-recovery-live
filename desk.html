@@ -52,6 +52,7 @@
     th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
     td.r, th.r { text-align:right; font-variant-numeric:tabular-nums; }
     .mono { font-family:"IBM Plex Mono",monospace; }
+    .dwell { color:var(--muted); font-size:12px; margin-right:.35rem; white-space:nowrap; }
     .scroll { overflow-x:auto; margin-top:1rem; background:var(--paper); border-radius:.9rem; -webkit-overflow-scrolling:touch; }
     footer { color:var(--subtle); font-size:12px; margin:1.5rem 0; padding-bottom: env(safe-area-inset-bottom); }
     @media (max-width:639px){
@@ -91,6 +92,7 @@ const ORDER = ["m0_1","m1_2","m2_3","m3_6","m6p"];
 const LABELS = { m0_1:"1 EMI overdue", m1_2:"1–2 months", m2_3:"2–3 months", m3_6:"3–6 months", m6p:">6 months" };
 const SHORT = { m0_1:"1 EMI", m1_2:"1–2 m", m2_3:"2–3 m", m3_6:"3–6 m", m6p:">6 m" };
 const HINTS = { m0_1:"one EMI pending", m1_2:"31–60 days", m2_3:"61–90 days", m3_6:"91–180 days", m6p:"181+ days" };
+const FLOOR = { m0_1:1, m1_2:31, m2_3:61, m3_6:91, m6p:181 };
 const SHEET = {
   m0_1:{open:"https://docs.google.com/spreadsheets/d/1UGbJNC2WuoV9Q4UHm8dRj90QasF3vB0ZYjrSfv6sgHM/edit?usp=sharing",xlsx:"https://docs.google.com/spreadsheets/d/1UGbJNC2WuoV9Q4UHm8dRj90QasF3vB0ZYjrSfv6sgHM/export?format=xlsx",pdf:"https://docs.google.com/spreadsheets/d/1UGbJNC2WuoV9Q4UHm8dRj90QasF3vB0ZYjrSfv6sgHM/export?format=pdf&portrait=false&size=A4&fitw=true"},
   m1_2:{open:"https://docs.google.com/spreadsheets/d/1lINVU5-7cAqJRiZ5NoA93HF0862KufmflG1MVEe1cj4/edit?usp=sharing",xlsx:"https://docs.google.com/spreadsheets/d/1lINVU5-7cAqJRiZ5NoA93HF0862KufmflG1MVEe1cj4/export?format=xlsx",pdf:"https://docs.google.com/spreadsheets/d/1lINVU5-7cAqJRiZ5NoA93HF0862KufmflG1MVEe1cj4/export?format=pdf&portrait=false&size=A4&fitw=true"},
@@ -125,6 +127,37 @@ function ratesHtml(b, a, lap){
 }
 
 function cr(n){ const a=Math.abs(n); if(a>=1e7) return (n<0?"−":"")+"₹"+(a/1e7).toFixed(2)+" Cr"; if(a>=1e5) return (n<0?"−":"")+"₹"+(a/1e5).toFixed(2)+" L"; return inr.format(Math.round(n)); }
+function isoDays(from,to){
+  const a=Date.parse(from+"T00:00:00+05:30"), b=Date.parse(to+"T00:00:00+05:30");
+  if(!isFinite(a)||!isFinite(b)||b<a) return 1;
+  return Math.max(1, Math.round((b-a)/86400000)+1);
+}
+function dwellMark(caseNo, bucket, lateBy){
+  const asOf = (META && META.asOf) || "";
+  const floor = FLOOR[bucket] || 1;
+  const fromDpd = Math.max(1, (Number(lateBy)||0) - floor + 1);
+  const daysList = ((HIST && HIST.days) || []).filter(d => d.asOf && (!asOf || d.asOf <= asOf)).sort((a,b)=>b.asOf.localeCompare(a.asOf));
+  let firstSame = asOf, saw=false;
+  for (const d of daysList){
+    if (d.asOf === asOf) continue;
+    const row = (d.od||[]).find(x => x[0]===caseNo);
+    if (!row || !row[7]) continue;
+    if (row[7] !== bucket){ saw=true; break; }
+    firstSame = d.asOf;
+  }
+  const days = saw && asOf ? Math.min(fromDpd, isoDays(firstSame, asOf)) : fromDpd;
+  const just = saw && days<=2;
+  return '<span class="dwell">• '+days+'d in this desk'+(just?' · just in':'')+'</span>';
+}
+function nm(r){ return dwellMark(r[0], r[7], r[2])+' '+(r[1]||'—'); }
+function nmCase(caseNo, name, bucket, lateBy){
+  if (!bucket) {
+    const r = ROWS.find(x => x[0]===caseNo);
+    if (r) { bucket=r[7]; lateBy=r[2]; }
+  }
+  if (!bucket) return name||'—';
+  return dwellMark(caseNo, bucket, lateBy)+' '+(name||'—');
+}
 function fd(v){ if(!v) return "—"; const [y,m,d]=v.split("-"); return d+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(m)-1]+" "+y; }
 function cls(n){ return n<-0.5?"ok":n>0.5?"bad":""; }
 function sd(v){ if(!v) return "—"; const [y,m,d]=v.split("-"); return Number(d)+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(m)-1]; }
@@ -214,7 +247,7 @@ function showFlow(id, kind){
   document.getElementById("flow-sub").textContent = kind === "reduced" ? "Green list — cases reduced vs 16 Sep" : "Red list — cases added vs 16 Sep";
   document.getElementById("flow-title").textContent = kind === "reduced" ? "These files left this band" : "These files came into this band";
   const rows = list.length
-    ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td>'+(r[4]||'')+'</td></tr>').join('')
+    ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+nmCase(r[0], r[1], r[7], r[2])+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td>'+(r[4]||'')+'</td></tr>').join('')
     : '<tr><td colspan="5" style="padding:2rem;text-align:center">No file list for this alert.</td></tr>';
   document.getElementById("flow-body").innerHTML = '<div class="hint" style="padding:.6rem 1rem">'+int.format(list.length)+' files. File / case no. is the key.</div><div class="scroll" style="margin:0"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Why</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   document.getElementById("flow-modal").hidden = false;
@@ -366,7 +399,7 @@ function showDateFlow(id, kind){
   document.getElementById("flow-title").textContent = t[0];
   document.getElementById("flow-sub").textContent = t[1];
   const rows = list.length
-    ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td>'+(r[4]||'')+'</td></tr>').join('')
+    ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+nmCase(r[0], r[1], r[7], r[2])+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td>'+(r[4]||'')+'</td></tr>').join('')
     : '<tr><td colspan="5" style="padding:2rem;text-align:center">No file list for this alert.</td></tr>';
   document.getElementById("flow-body").innerHTML = '<div class="hint" style="padding:.6rem 1rem">'+int.format(list.length)+' files. File / case no. is the key.</div><div class="scroll" style="margin:0"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Why</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   document.getElementById("flow-modal").hidden = false;
@@ -374,7 +407,7 @@ function showDateFlow(id, kind){
 function dateFileBlock(id, kind, title, hint, tone){
   const list = (DATEFLOW[id] && DATEFLOW[id][kind]) || [];
   const head = '<div class="card" style="padding:0;overflow:hidden;border:1px solid '+(tone==='ok'?'#cfe3d6':'#ead3d3')+'"><div style="padding:.65rem .85rem;border-bottom:1px solid var(--line)"><button type="button" class="chip '+(tone==='ok'?'ok':'bad')+'" style="width:auto" onclick="showDateFlow(\''+id+'\',\''+kind+'\')">'+title+' · '+int.format(list.length)+'</button><p class="hint" style="margin:.25rem 0 0">'+hint+'</p></div>';
-  const body = list.slice(0,6).map((r,i)=>'<div style="padding:.5rem .85rem;border-top:1px solid var(--line)"><p class="mono" style="font-size:12px">'+(i+1)+'. '+r[0]+' · '+cr(r[3])+'</p><p class="hint">'+(r[1]||'—')+'</p><p class="hint">'+r[2]+'d · '+(r[4]||'')+'</p></div>').join('')
+  const body = list.slice(0,6).map((r,i)=>'<div style="padding:.5rem .85rem;border-top:1px solid var(--line)"><p class="mono" style="font-size:12px">'+(i+1)+'. '+r[0]+' · '+cr(r[3])+'</p><p class="hint">'+nmCase(r[0], r[1], r[7], r[2])+'</p><p class="hint">'+r[2]+'d · '+(r[4]||'')+'</p></div>').join('')
     || '<p class="hint" style="padding:.75rem .85rem">None</p>';
   const more = list.length>6 ? '<button type="button" class="chip" style="width:auto;margin:.5rem .85rem" onclick="showDateFlow(\''+id+'\',\''+kind+'\')">Show all '+int.format(list.length)+'</button>' : '';
   return head+body+more+'</div>';
@@ -510,7 +543,7 @@ function render(){
   }
   if(cur==="early"){
     const list = ROWS.filter(r => Number(r[9])===1 && Number(r[2])>0).sort((a,b)=>a[2]-b[2]);
-    const body = list.map((r,i)=>'<tr><td class="mono">'+(i+1)+'</td><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td></tr>').join('')
+    const body = list.map((r,i)=>'<tr><td class="mono">'+(i+1)+'</td><td class="mono">'+r[0]+'</td><td>'+nm(r)+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td></tr>').join('')
       || '<tr><td colspan="5">No first-EMI files in this dump.</td></tr>';
     document.getElementById('app').innerHTML = nav('early')
       +'<div class="banner" style="margin-top:1rem"><p class="kicker2">First EMI</p><p class="title">'+int.format(list.length)+' files with 1 EMI pending</p></div>'
@@ -522,7 +555,7 @@ function render(){
       const p = String(r[19]||'').toUpperCase();
       return p && p!=='ECS';
     });
-    const body = list.map((r,i)=>'<tr><td class="mono">'+(i+1)+'</td><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="mono">'+(r[19]||'')+'</td><td class="r mono">'+cr(r[3])+'</td></tr>').join('')
+    const body = list.map((r,i)=>'<tr><td class="mono">'+(i+1)+'</td><td class="mono">'+r[0]+'</td><td>'+nm(r)+'</td><td class="mono">'+(r[19]||'')+'</td><td class="r mono">'+cr(r[3])+'</td></tr>').join('')
       || '<tr><td colspan="5">ECS list uses the dump. Open Meet if empty.</td></tr>';
     document.getElementById('app').innerHTML = nav('nach')
       +'<div class="banner" style="margin-top:1rem"><p class="kicker2">NACH / ECS</p><p class="title">Not live on ECS</p></div>'
@@ -532,7 +565,7 @@ function render(){
   if(cur==="huddle"){
     const pack = HUDDLE || META.huddle || { named: [] };
     const named = pack.named || [];
-    const rows = named.map((n,i)=>'<tr><td class="mono">'+(i+1)+'</td><td class="mono">'+(n.caseNo||'')+'</td><td>'+(n.name||'—')+'</td><td class="r mono">'+(n.lateBy||'')+'</td><td class="r mono">'+cr(n.overdue)+'</td><td>'+(n.why||'')+'</td></tr>').join('')
+    const rows = named.map((n,i)=>'<tr><td class="mono">'+(i+1)+'</td><td class="mono">'+(n.caseNo||'')+'</td><td>'+nmCase(n.caseNo, n.name, n.bucket, n.lateBy)+'</td><td class="r mono">'+(n.lateBy||'')+'</td><td class="r mono">'+cr(n.overdue)+'</td><td>'+(n.why||'')+'</td></tr>').join('')
       || '<tr><td colspan="6" style="padding:2rem;text-align:center">Huddle list not on this dump yet.</td></tr>';
     document.getElementById('app').innerHTML = nav('huddle')
       +'<div class="banner" style="margin-top:1rem"><p class="kicker2">Daily 6 pm meeting · standing job</p><p class="title">Name these files in the room</p><p class="hint">Tomorrow we check the same file numbers. If still unpaid, that person answers. This is every day, not a one-off.</p></div>'
@@ -570,7 +603,7 @@ function render(){
   const b=lap.buckets.find(x=>x.id===cur); const a=vs.buckets.find(x=>x.id===cur)||{cases:0,overdue:0};
   const dc=b.cases-a.cases, da=b.overdue-a.overdue;
   const list=ROWS.filter(r=>r[7]===cur).sort((x,y)=>y[3]-x[3]);
-  const body = list.length ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td class="mono">'+(r[5]||'—')+'</td><td class="mono">'+(r[8]||'—')+'</td></tr>').join('') : '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted)">No files in this bucket on this mail.</td></tr>';
+  const body = list.length ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+nm(r)+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td class="mono">'+(r[5]||'—')+'</td><td class="mono">'+(r[8]||'—')+'</td></tr>').join('') : '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted)">No files in this bucket on this mail.</td></tr>';
   document.getElementById('app').innerHTML = nav(cur)+
     sheetBar(cur)+
     '<div class="banner '+(dc<0||da<0?'ok':'bad')+'" style="margin-top:1rem"><strong>'+LABELS[cur]+'</strong><div class="hint">This mail '+int.format(b.cases)+' cases / '+cr(b.overdue)+'. 16 Sep start '+int.format(a.cases)+' cases / '+cr(a.overdue)+'.</div><div style="margin-top:.4rem">'+chips(cur,dc,da)+'</div></div>'
