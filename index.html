@@ -104,6 +104,13 @@ const SHEET = {
   m3_6:{open:"https://docs.google.com/spreadsheets/d/1sUXHPM68_LQuxVCZ2_wSU21629iUoGX4-TGqRf420-s/edit?usp=sharing",xlsx:"https://docs.google.com/spreadsheets/d/1sUXHPM68_LQuxVCZ2_wSU21629iUoGX4-TGqRf420-s/export?format=xlsx",pdf:"https://docs.google.com/spreadsheets/d/1sUXHPM68_LQuxVCZ2_wSU21629iUoGX4-TGqRf420-s/export?format=xlsx"},
   m6p:{open:"https://docs.google.com/spreadsheets/d/1hNbu0xkLloO_bSQKUBrOG8q23CaYUZKcuQWAv23geIw/edit?usp=sharing",xlsx:"https://docs.google.com/spreadsheets/d/1hNbu0xkLloO_bSQKUBrOG8q23CaYUZKcuQWAv23geIw/export?format=xlsx",pdf:"https://docs.google.com/spreadsheets/d/1hNbu0xkLloO_bSQKUBrOG8q23CaYUZKcuQWAv23geIw/export?format=xlsx"}
 };
+const DATE_SHEET = {
+  m0_1:{open:"https://docs.google.com/spreadsheets/d/1yc-9e6ZsSmO-P4PWociEscQAsdKXxcl5DkO6HMWDay4/edit?usp=sharing",xlsx:"https://docs.google.com/spreadsheets/d/1yc-9e6ZsSmO-P4PWociEscQAsdKXxcl5DkO6HMWDay4/export?format=xlsx"},
+  m1_2:{open:"https://docs.google.com/spreadsheets/d/1BFb4Qn4Uyhz6RK-YMXAR5VSiw4JRGfCRaQRC4Bm-aUM/edit?usp=sharing",xlsx:"https://docs.google.com/spreadsheets/d/1BFb4Qn4Uyhz6RK-YMXAR5VSiw4JRGfCRaQRC4Bm-aUM/export?format=xlsx"},
+  m2_3:{open:"https://docs.google.com/spreadsheets/d/1YIY3hCxd_bUTkhZueoRVVDwardUnXcZ-6OrmmA8hjs0/edit?usp=sharing",xlsx:"https://docs.google.com/spreadsheets/d/1YIY3hCxd_bUTkhZueoRVVDwardUnXcZ-6OrmmA8hjs0/export?format=xlsx"},
+  m3_6:{open:"https://docs.google.com/spreadsheets/d/1lDoul5GuSVZipLvpYQk1ls9N6b_2oF8AZXwkGG8GPm8/edit?usp=sharing",xlsx:"https://docs.google.com/spreadsheets/d/1lDoul5GuSVZipLvpYQk1ls9N6b_2oF8AZXwkGG8GPm8/export?format=xlsx"},
+  m6p:{open:"https://docs.google.com/spreadsheets/d/17U04BKIVAGqxnt4BTjlZOaNqWLY16hRq1iIORcXYP20/edit?usp=sharing",xlsx:"https://docs.google.com/spreadsheets/d/17U04BKIVAGqxnt4BTjlZOaNqWLY16hRq1iIORcXYP20/export?format=xlsx"}
+};
 function sheetBar(id){
   const s=SHEET[id], p=id==="m0_1"?1:id==="m1_2"?2:id==="m2_3"?3:id==="m3_6"?4:5;
   return '<a href="'+s.open+'" target="_blank" rel="noreferrer" class="chip" style="background:var(--ink);color:var(--paper);margin-bottom:.5rem;text-align:center">Google Sheet · Person '+p+'</a>';
@@ -386,6 +393,30 @@ function flowFromDays(laterDay, earlierDay){
   });
   return out;
 }
+function dateSheetBar(id, kind){
+  const s = DATE_SHEET[id];
+  if (!s) return "";
+  return '<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.4rem">'
+    +'<a href="'+s.open+'" target="_blank" rel="noreferrer" class="chip" style="background:var(--ink);color:var(--paper);width:auto">Google Sheet</a>'
+    +'<button type="button" class="chip" style="width:auto" onclick="event.stopPropagation();downloadDateList(\''+id+'\',\''+kind+'\')">Excel</button>'
+    +'</div>';
+}
+function downloadDateList(id, kind){
+  const pack = DATEFLOW[id] || {};
+  const list = pack[kind] || [];
+  const p = personOf(id);
+  const rows = [["S.no","File / case no.","Name","Days late","Overdue","Why"]];
+  if (!list.length) rows.push(["","None","","","",""]);
+  else list.forEach((r,i) => rows.push([i+1, r[0], r[1], r[2], Math.round(Number(r[3])||0), r[4]||""]));
+  const csv = rows.map(row => row.map(c => '"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv;charset=utf-8"}));
+  a.download = "Person-"+p+"-"+kind+".csv";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href); }, 1500);
+}
 function showDateFlow(id, kind){
   const pack = DATEFLOW[id] || {added:[], reduced:[], leave:[], enter:[], up:[], down:[]};
   const list = pack[kind] || [];
@@ -403,12 +434,12 @@ function showDateFlow(id, kind){
   const rows = list.length
     ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+nmCase(r[0], r[1], r[7], r[2])+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td>'+(r[4]||'')+'</td></tr>').join('')
     : '<tr><td colspan="5" style="padding:2rem;text-align:center">No file list for this alert.</td></tr>';
-  document.getElementById("flow-body").innerHTML = '<div class="hint" style="padding:.6rem 1rem">'+int.format(list.length)+' files. File / case no. is the key.</div><div class="scroll" style="margin:0"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Why</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  document.getElementById("flow-body").innerHTML = '<div class="hint" style="padding:.6rem 1rem">'+int.format(list.length)+' files. File / case no. is the key.'+dateSheetBar(id, kind)+'</div><div class="scroll" style="margin:0"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Why</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   document.getElementById("flow-modal").hidden = false;
 }
 function dateFileBlock(id, kind, title, hint, tone){
   const list = (DATEFLOW[id] && DATEFLOW[id][kind]) || [];
-  const head = '<div class="card" style="padding:0;overflow:hidden;border:1px solid '+(tone==='ok'?'#cfe3d6':'#ead3d3')+'"><div style="padding:.65rem .85rem;border-bottom:1px solid var(--line)"><button type="button" class="chip '+(tone==='ok'?'ok':'bad')+'" style="width:auto" onclick="showDateFlow(\''+id+'\',\''+kind+'\')">'+title+' · '+int.format(list.length)+'</button><p class="hint" style="margin:.25rem 0 0">'+hint+'</p></div>';
+  const head = '<div class="card" style="padding:0;overflow:hidden;border:1px solid '+(tone==='ok'?'#cfe3d6':'#ead3d3')+'"><div style="padding:.65rem .85rem;border-bottom:1px solid var(--line)"><button type="button" class="chip '+(tone==='ok'?'ok':'bad')+'" style="width:auto" onclick="showDateFlow(\''+id+'\',\''+kind+'\')">'+title+' · '+int.format(list.length)+'</button>'+dateSheetBar(id, kind)+'<p class="hint" style="margin:.25rem 0 0">'+hint+'</p></div>';
   const body = list.slice(0,6).map((r,i)=>'<div style="padding:.5rem .85rem;border-top:1px solid var(--line)"><p class="mono" style="font-size:12px">'+(i+1)+'. '+r[0]+' · '+cr(r[3])+'</p><p class="hint">'+nmCase(r[0], r[1], r[7], r[2])+'</p><p class="hint">'+r[2]+'d · '+(r[4]||'')+'</p></div>').join('')
     || '<p class="hint" style="padding:.75rem .85rem">None</p>';
   const more = list.length>6 ? '<button type="button" class="chip" style="width:auto;margin:.5rem .85rem" onclick="showDateFlow(\''+id+'\',\''+kind+'\')">Show all '+int.format(list.length)+'</button>' : '';
