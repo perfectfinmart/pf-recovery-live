@@ -7,6 +7,7 @@ const ORDER = ["m0_1","m1_2","m2_3","m3_6","m6p"];
 const LABELS = { m0_1:"1 EMI overdue", m1_2:"1–2 months", m2_3:"2–3 months", m3_6:"3–6 months", m6p:">6 months" };
 const SHORT = { m0_1:"1 EMI", m1_2:"1–2 m", m2_3:"2–3 m", m3_6:"3–6 m", m6p:">6 m" };
 const HINTS = { m0_1:"one EMI pending", m1_2:"31–60 days", m2_3:"61–90 days", m3_6:"91–180 days", m6p:"181+ days" };
+const FLOOR = { m0_1:1, m1_2:31, m2_3:61, m3_6:91, m6p:181 };
 const int = new Intl.NumberFormat("en-IN");
 const inr = new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0});
 
@@ -30,6 +31,37 @@ function ratesHtml(b, a, lap){
 }
 
 function cr(n){ const a=Math.abs(n); if(a>=1e7) return (n<0?"−":"")+"₹"+(a/1e7).toFixed(2)+" Cr"; if(a>=1e5) return (n<0?"−":"")+"₹"+(a/1e5).toFixed(2)+" L"; return inr.format(Math.round(n)); }
+function isoDays(from,to){
+  const a=Date.parse(from+"T00:00:00+05:30"), b=Date.parse(to+"T00:00:00+05:30");
+  if(!isFinite(a)||!isFinite(b)||b<a) return 1;
+  return Math.max(1, Math.round((b-a)/86400000)+1);
+}
+function dwellMark(caseNo, bucket, lateBy){
+  const asOf = (META && META.asOf) || "";
+  const floor = FLOOR[bucket] || 1;
+  const fromDpd = Math.max(1, (Number(lateBy)||0) - floor + 1);
+  const daysList = ((HIST && HIST.days) || []).filter(d => d.asOf && (!asOf || d.asOf <= asOf)).sort((a,b)=>b.asOf.localeCompare(a.asOf));
+  let firstSame = asOf, saw=false;
+  for (const d of daysList){
+    if (d.asOf === asOf) continue;
+    const row = (d.od||[]).find(x => x[0]===caseNo);
+    if (!row || !row[7]) continue;
+    if (row[7] !== bucket){ saw=true; break; }
+    firstSame = d.asOf;
+  }
+  const days = saw && asOf ? Math.min(fromDpd, isoDays(firstSame, asOf)) : fromDpd;
+  const just = saw && days<=2;
+  return '<span class="dwell">• '+days+'d in this desk'+(just?' · just in':'')+'</span>';
+}
+function nm(r){ return dwellMark(r[0], r[7], r[2])+' '+(r[1]||'—'); }
+function nmCase(caseNo, name, bucket, lateBy){
+  if (!bucket) {
+    const r = ROWS.find(x => x[0]===caseNo);
+    if (r) { bucket=r[7]; lateBy=r[2]; }
+  }
+  if (!bucket) return name||'—';
+  return dwellMark(caseNo, bucket, lateBy)+' '+(name||'—');
+}
 function fd(v){ if(!v) return "—"; const [y,m,d]=v.split("-"); return d+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(m)-1]+" "+y; }
 function cls(n){ return n<-0.5?"ok":n>0.5?"bad":""; }
 function sd(v){ if(!v) return "—"; const [y,m,d]=v.split("-"); return Number(d)+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(m)-1]; }
@@ -99,7 +131,7 @@ function boardBanner(lap, vs){
     +'<tr><td>Cases late 91 days+</td><td class="mono">'+int.format(earlier.npa91)+'</td><td class="mono">'+int.format(later.npa91)+'</td><td class="'+cls(npaDelta)+'">'+laterCopy(later.npa91,earlier.npa91,false,laterL,earlierL)+'</td></tr>'
     +'</tbody></table><p class="legend">Example: 11 Sep vs 16 Sep → we say if 16 Sep improved or worsened. 19 Sep vs 16 Sep → we say if 19 Sep improved or worsened.</p></div>';
 }
-let META=null, ROWS=[], FLOW={};
+let META=null, ROWS=[], FLOW={}, HIST=null;
 function band(){ const h=(location.hash||"").replace(/^#\/?/,""); const m=h.match(/^sheet\/(m0_1|m1_2|m2_3|m3_6|m6p)$/); return m?m[1]:""; }
 function go(id){
   const hash = id ? "#/sheet/"+id : "#";
@@ -114,7 +146,7 @@ function showFlow(id, kind){
   document.getElementById("flow-sub").textContent = kind === "reduced" ? "Green list — cases reduced vs 16 Sep" : "Red list — cases added vs 16 Sep";
   document.getElementById("flow-title").textContent = kind === "reduced" ? "These files left this band" : "These files came into this band";
   const rows = list.length
-    ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td>'+(r[4]||'')+'</td></tr>').join('')
+    ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+nmCase(r[0], r[1], r[7], r[2])+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td>'+(r[4]||'')+'</td></tr>').join('')
     : '<tr><td colspan="5" style="padding:2rem;text-align:center">No file list for this alert.</td></tr>';
   document.getElementById("flow-body").innerHTML = '<div class="hint" style="padding:.6rem 1rem">'+int.format(list.length)+' files. File / case no. is the key.</div><div class="scroll" style="margin:0"><table><thead><tr><th>File / case no.</th><th>Name</th><th class="r">Days</th><th class="r">Pending</th><th>Why</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   document.getElementById("flow-modal").hidden = false;
@@ -183,7 +215,7 @@ function render(){
   const b=lap.buckets.find(x=>x.id===cur); const a=vs.buckets.find(x=>x.id===cur)||{cases:0,overdue:0};
   const dc=b.cases-a.cases, da=b.overdue-a.overdue;
   const list=ROWS.filter(r=>r[7]===cur).sort((x,y)=>y[3]-x[3]);
-  const body = list.length ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+(r[1]||'—')+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td class="mono">'+(r[5]||'—')+'</td><td class="mono">'+(r[8]||'—')+'</td></tr>').join('') : '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted)">No files in this bucket on this mail.</td></tr>';
+  const body = list.length ? list.map(r=>'<tr><td class="mono">'+r[0]+'</td><td>'+nm(r)+'</td><td class="r mono">'+int.format(r[2])+'</td><td class="r mono">'+cr(r[3])+'</td><td class="mono">'+(r[5]||'—')+'</td><td class="mono">'+(r[8]||'—')+'</td></tr>').join('') : '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted)">No files in this bucket on this mail.</td></tr>';
   document.getElementById('app').innerHTML = nav(cur)+
     '<div class="banner '+(dc<0||da<0?'ok':'bad')+'" style="margin-top:1rem"><strong>'+LABELS[cur]+'</strong><div class="hint">This mail '+int.format(b.cases)+' cases / '+cr(b.overdue)+'. 16 Sep start '+int.format(a.cases)+' cases / '+cr(a.overdue)+'.</div><div style="margin-top:.4rem">'+chips(cur,dc,da)+'</div></div>'
     +'<div class="kpis">'+kpi('Cases this mail', int.format(b.cases), 'this bucket', {n:dc,t:result(dc,false)})+kpi('Pending this mail', cr(b.overdue), LABELS[cur], {n:da,t:result(da,true)})+kpi('Default rate', (function(){ const defC = lap.cases ? (b.cases/lap.cases)*100 : 0; return pf(defC); })(), int.format(b.cases)+' / '+int.format(lap.cases)+' LAP files')+kpi('Recovery vs 16 Sep', (function(){ const rec = a.overdue ? ((a.overdue-b.overdue)/a.overdue)*100 : 0; return pf(rec); })(), 'overdue down ÷ 16 Sep overdue of this desk · '+(RBI[cur]||''), {n: (a.overdue-b.overdue)*-1, t: AIM[cur]})+'</div>'
@@ -205,6 +237,7 @@ async function j(path){
 }
 async function load(){
   META = await j('live-meta.json');
+  HIST = await j('live-history.json') || HIST;
   const packs = await Promise.all(['live-m0_1.json','live-m0_1a.json','live-m0_1b.json','live-m1_2.json','live-m2_3.json','live-m3_6.json','live-m6p.json'].map(j));
   const merged = packs.flatMap(x => Array.isArray(x) ? x : []);
   if (merged.length) ROWS = merged;
