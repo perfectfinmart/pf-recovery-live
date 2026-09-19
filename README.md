@@ -1,8 +1,10 @@
 # Perfect Finmart Recovery Desk
 
-Live daily LAP recovery snapshot. Updated by Grok at 14:30 IST.
+ONE app — the Daily monitor. Same dump, same five desks, same tabs:
 
-**Team link (open this):**
-https://htmlpreview.github.io/?https://github.com/perfectfinmart/pf-recovery-live/blob/main/index.html
+Home · Meet · People · 1st · ECS · Map · Dates · 91+ · Call · New
 
-16 Sep 2026 is the start day. Every later dump is judged against the earlier one.
+**PAGE (the 4 pm mail link — this is the only page):**
+https://htmlpreview.github.io/?https://github.com/perfectfinmart/pf-recovery-live/blob/main/desk.html
+
+16 Sep 2026 is the frozen start. Every later dump is judged against 16 Sep.
